@@ -442,7 +442,7 @@
 
     // ==================== MODAL MENU MOBILE (SLIDE GAUCHE → DROITE) ====================
     const MobileMenu = ({ user, onNavigate, onLogout, onClose }) => {
-      const menuItems = user.role === 'client' ? [
+      const menuItems = user?.role === 'client' ? [
         { icon: 'Home', label: 'Accueil', view: 'home' },
         { icon: 'Heart', label: 'Mes Favoris', view: 'favorites' },
         { icon: 'ShoppingCart', label: 'Mon Panier', view: 'cart' },
@@ -829,30 +829,31 @@ document.head.appendChild(style);
     };
 
     // ==================== BARRE DE NAVIGATION ====================
-    const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
-      const [showMenu, setShowMenu] = useState(false);
-      const tier = getLoyaltyTier(points);
+const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const tier = getLoyaltyTier(points || 0);
+  
+  if (!user) return null;
 
-      return (
-        <>
-          <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-40">
-            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-              <h1 
-                className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" 
-                onClick={() => onNavigate('home')}
-              >
-                PUFF JR
-              </h1>
-              
-              <div className="flex items-center gap-3">
-                {/* Desktop Navigation */}
-                <div className="hidden md:flex items-center gap-3">
-                  <span className="text-pink-300 text-sm">👋 {user.name}</span>
+  return (
+    <>
+      <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+          <h1 
+            className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" 
+            onClick={() => onNavigate('home')}
+          >
+            P-Shop
+          </h1>
+          
+          <div className="flex items-center gap-3">
+            <div className="hidden md:flex items-center gap-3">
+              <span className="text-pink-300 text-sm">👋 {user?.name || 'Utilisateur'}</span>
                   
-                  {user.role === 'client' && (
+                  {user?.role === 'client' && (
                     <>
                       <div className="bg-pink-500/20 px-3 py-1 rounded-lg">
-                        <span className="text-pink-300 text-sm">⭐ {points} pts</span>
+                        <span className="text-pink-300 text-sm">⭐ {points || 0} pts</span>
                       </div>
                       <button 
                         onClick={() => onNavigate('favorites')} 
@@ -880,7 +881,7 @@ document.head.appendChild(style);
                     </>
                   )}
                   
-                  {user.role === 'producer' && (
+                  {user?.role === 'producer' && (
                     <>
                       <button 
                         onClick={() => onNavigate('stats')} 
@@ -914,7 +915,7 @@ document.head.appendChild(style);
                 </button>
                 
                 {/* Cart badge for mobile */}
-                {user.role === 'client' && cartCount > 0 && (
+                {user?.role === 'client' && cartCount > 0 && (
                   <button 
                     onClick={() => onNavigate('cart')} 
                     className="md:hidden relative bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
