@@ -54,7 +54,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
   <script type="text/babel">
-    const { useState, useEffect, useMemo, useCallback } = React;
+    const { useState, useEffect, useMemo, useCallback, useRef } = React;
 
     const waitForFirebase = () => {
       return new Promise((resolve) => {
@@ -117,7 +117,8 @@
         Users: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
         Camera: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
         Check: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
-        Star: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Star: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+        Image: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
       };
       return icons[name] || null;
     };
@@ -142,7 +143,10 @@
       </div>
     );
 
-// ==================== PARTIE 2/6 : MODALS & UTILITAIRES ====================
+// ==================== FIN PARTIE 1/7 - CONFIG & UI DE BASE ====================
+// Continuez avec la partie 2/7...
+// ==================== PARTIE 2/7 : UTILITAIRES & MODALS ====================
+// Copiez ce code après la partie 1/7
 
     // Fonction pour générer un code de parrainage unique
     const generateReferralCode = (name) => {
@@ -210,6 +214,232 @@
                   AJOUTER AU PANIER
                 </Button>
               )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==================== MODAL FORMULAIRE PRODUIT (AJOUT/MODIFICATION) ====================
+    const ProductFormModal = ({ product, onClose, onSubmit }) => {
+      const [form, setForm] = useState({
+        name: product?.name || '',
+        price: product?.price || '',
+        stock: product?.stock || '',
+        desc: product?.desc || '',
+        img: product?.img || '',
+        imageType: 'url' // 'url' ou 'upload'
+      });
+      const [imageFile, setImageFile] = useState(null);
+      const [previewUrl, setPreviewUrl] = useState(product?.img || '');
+      const [loading, setLoading] = useState(false);
+
+      const handleImageChange = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          setImageFile(file);
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            setPreviewUrl(reader.result);
+          };
+          reader.readAsDataURL(file);
+        }
+      };
+
+      const handleUrlChange = (url) => {
+        setForm({...form, img: url});
+        setPreviewUrl(url);
+      };
+
+      const handleSubmit = async () => {
+        if (!form.name || !form.price || !form.stock || !form.desc) {
+          alert('Veuillez remplir tous les champs');
+          return;
+        }
+
+        const price = parseFloat(form.price);
+        const stock = parseInt(form.stock);
+
+        if (isNaN(price) || price <= 0) {
+          alert('Prix invalide');
+          return;
+        }
+
+        if (isNaN(stock) || stock < 0) {
+          alert('Stock invalide');
+          return;
+        }
+
+        setLoading(true);
+
+        try {
+          let finalImageUrl = form.img;
+
+          // Si upload d'image
+          if (form.imageType === 'upload' && imageFile) {
+            const { storageRef, uploadBytes, getDownloadURL } = window.firebaseUtils;
+            const imgRef = storageRef(window.firebaseStorage, `products/${Date.now()}_${imageFile.name}`);
+            await uploadBytes(imgRef, imageFile);
+            finalImageUrl = await getDownloadURL(imgRef);
+          }
+
+          if (!finalImageUrl) {
+            alert('Veuillez fournir une image');
+            setLoading(false);
+            return;
+          }
+
+          await onSubmit({
+            name: form.name,
+            price,
+            stock,
+            desc: form.desc,
+            img: finalImageUrl
+          });
+
+          onClose();
+        } catch (err) {
+          alert('Erreur: ' + err.message);
+        }
+        setLoading(false);
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+          <div className={`${S.card} max-w-3xl w-full max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-white">
+                  {product ? '✏️ Modifier le produit' : '➕ Ajouter un produit'}
+                </h2>
+                <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
+                  <Icon name="X" size={24} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Nom du produit */}
+                <div>
+                  <label className="text-pink-300 text-sm mb-2 block">Nom du produit *</label>
+                  <Input
+                    type="text"
+                    placeholder="Ex: Sakura Grape 16k"
+                    value={form.name}
+                    onChange={e => setForm({...form, name: e.target.value})}
+                  />
+                </div>
+
+                {/* Prix et Stock */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-pink-300 text-sm mb-2 block">Prix (€) *</label>
+                    <Input
+                      type="number"
+                      step="0.01"
+                      placeholder="10.00"
+                      value={form.price}
+                      onChange={e => setForm({...form, price: e.target.value})}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-pink-300 text-sm mb-2 block">Stock *</label>
+                    <Input
+                      type="number"
+                      placeholder="50"
+                      value={form.stock}
+                      onChange={e => setForm({...form, stock: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label className="text-pink-300 text-sm mb-2 block">Description *</label>
+                  <textarea
+                    className={S.input}
+                    rows="3"
+                    placeholder="Description du produit..."
+                    value={form.desc}
+                    onChange={e => setForm({...form, desc: e.target.value})}
+                  />
+                </div>
+
+                {/* Type d'image */}
+                <div>
+                  <label className="text-pink-300 text-sm mb-2 block">Image du produit *</label>
+                  <div className="flex gap-2 mb-3">
+                    <button
+                      onClick={() => setForm({...form, imageType: 'url'})}
+                      className={`flex-1 p-3 rounded-xl border-2 transition ${
+                        form.imageType === 'url'
+                          ? 'bg-pink-500/30 border-pink-500 text-white'
+                          : 'bg-white/5 border-pink-500/30 text-pink-300 hover:border-pink-500/50'
+                      }`}
+                    >
+                      🔗 URL
+                    </button>
+                    <button
+                      onClick={() => setForm({...form, imageType: 'upload'})}
+                      className={`flex-1 p-3 rounded-xl border-2 transition ${
+                        form.imageType === 'upload'
+                          ? 'bg-pink-500/30 border-pink-500 text-white'
+                          : 'bg-white/5 border-pink-500/30 text-pink-300 hover:border-pink-500/50'
+                      }`}
+                    >
+                      📤 Upload
+                    </button>
+                  </div>
+
+                  {form.imageType === 'url' ? (
+                    <Input
+                      type="url"
+                      placeholder="https://exemple.com/image.jpg"
+                      value={form.img}
+                      onChange={e => handleUrlChange(e.target.value)}
+                      icon="Image"
+                    />
+                  ) : (
+                    <div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageChange}
+                        className="hidden"
+                        id="imageUpload"
+                      />
+                      <label
+                        htmlFor="imageUpload"
+                        className="block w-full bg-white/10 border-2 border-dashed border-pink-500/30 rounded-xl p-6 text-center cursor-pointer hover:bg-white/20 hover:border-pink-500/50 transition"
+                      >
+                        <Icon name="Upload" size={32} className="mx-auto text-pink-400 mb-2" />
+                        <p className="text-pink-300">
+                          {imageFile ? imageFile.name : 'Cliquez pour choisir une image'}
+                        </p>
+                      </label>
+                    </div>
+                  )}
+                </div>
+
+                {/* Aperçu de l'image */}
+                {previewUrl && (
+                  <div>
+                    <label className="text-pink-300 text-sm mb-2 block">Aperçu</label>
+                    <div className="relative rounded-xl overflow-hidden border-2 border-pink-500/30">
+                      <img src={previewUrl} alt="Aperçu" className="w-full h-64 object-cover" />
+                    </div>
+                  </div>
+                )}
+
+                {/* Boutons d'action */}
+                <div className="flex gap-3 pt-4">
+                  <Button onClick={onClose} variant="secondary" className="flex-1">
+                    Annuler
+                  </Button>
+                  <Button onClick={handleSubmit} className="flex-1" disabled={loading}>
+                    {loading ? 'Chargement...' : (product ? 'Modifier' : 'Ajouter')}
+                  </Button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -330,12 +560,16 @@
       );
     };
 
+// ==================== FIN PARTIE 2/7 ====================
+// ==================== PARTIE 3/7 : QR SCANNER, MENU MOBILE & ANIMATIONS ====================
+// Copiez ce code après la partie 2/7
+
     // ==================== MODAL SCANNER QR CODE AVEC CAMÉRA RÉELLE ====================
     const QRScannerModal = ({ onClose, onValidate }) => {
       const [orderCode, setOrderCode] = useState('');
       const [scanning, setScanning] = useState(false);
-      const videoRef = React.useRef(null);
-      const streamRef = React.useRef(null);
+      const videoRef = useRef(null);
+      const streamRef = useRef(null);
 
       const startCamera = async () => {
         try {
@@ -440,6 +674,50 @@
       );
     };
 
+    // ==================== MODAL QR CODE AFFICHAGE ====================
+    const QRCodeDisplayModal = ({ orderId, onClose }) => {
+      const qrContainerRef = useRef(null);
+      const qrCode = generateOrderQRCode(orderId);
+
+      useEffect(() => {
+        if (qrContainerRef.current && window.QRCode) {
+          qrContainerRef.current.innerHTML = '';
+          new window.QRCode(qrContainerRef.current, {
+            text: qrCode,
+            width: 256,
+            height: 256,
+            colorDark: '#ec4899',
+            colorLight: '#ffffff'
+          });
+        }
+      }, [qrCode]);
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+          <div className={`${S.card} max-w-md w-full`} onClick={e => e.stopPropagation()}>
+            <div className="p-6 text-center">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-white">📱 QR Code Commande</h2>
+                <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
+                  <Icon name="X" size={24} />
+                </button>
+              </div>
+
+              <div className="bg-white p-6 rounded-2xl mb-6 inline-block">
+                <div ref={qrContainerRef}></div>
+              </div>
+
+              <p className="text-white font-bold text-xl mb-2">Commande #{orderId}</p>
+              <p className="text-pink-300 text-sm mb-4">Code: {qrCode}</p>
+              <p className="text-pink-300/70 text-xs">
+                Présentez ce QR code au livreur lors de la réception
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
     // ==================== MODAL MENU MOBILE (SLIDE GAUCHE → DROITE) ====================
     const MobileMenu = ({ user, onNavigate, onLogout, onClose }) => {
       const menuItems = user?.role === 'client' ? [
@@ -507,68 +785,27 @@
       );
     };
 
-    // ==================== MODAL QR CODE AFFICHAGE ====================
-    const QRCodeDisplayModal = ({ orderId, onClose }) => {
-      const qrContainerRef = React.useRef(null);
-      const qrCode = generateOrderQRCode(orderId);
-
-      useEffect(() => {
-        if (qrContainerRef.current && window.QRCode) {
-          qrContainerRef.current.innerHTML = '';
-          new window.QRCode(qrContainerRef.current, {
-            text: qrCode,
-            width: 256,
-            height: 256,
-            colorDark: '#ec4899',
-            colorLight: '#ffffff'
-          });
+    // ==================== AJOUT DES ANIMATIONS CSS ====================
+    // Animation pour le menu qui slide DEPUIS LA GAUCHE
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slide-in-left {
+        from {
+          transform: translateX(-100%);
         }
-      }, [qrCode]);
+        to {
+          transform: translateX(0);
+        }
+      }
+      .animate-slide-in-left {
+        animation: slide-in-left 0.3s ease-out;
+      }
+    `;
+    document.head.appendChild(style);
 
-      return (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-          <div className={`${S.card} max-w-md w-full`} onClick={e => e.stopPropagation()}>
-            <div className="p-6 text-center">
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-black text-white">📱 QR Code Commande</h2>
-                <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
-                  <Icon name="X" size={24} />
-                </button>
-              </div>
-
-              <div className="bg-white p-6 rounded-2xl mb-6 inline-block">
-                <div ref={qrContainerRef}></div>
-              </div>
-
-              <p className="text-white font-bold text-xl mb-2">Commande #{orderId}</p>
-              <p className="text-pink-300 text-sm mb-4">Code: {qrCode}</p>
-              <p className="text-pink-300/70 text-xs">
-                Présentez ce QR code au livreur lors de la réception
-              </p>
-            </div>
-          </div>
-        </div>
-      );
-    };
-
-// ==================== FIN PARTIE 2/6 ====================
-// Animation pour le menu qui slide DEPUIS LA GAUCHE
-const style = document.createElement('style');
-style.textContent = `
-  @keyframes slide-in-left {
-    from {
-      transform: translateX(-100%);
-    }
-    to {
-      transform: translateX(0);
-    }
-  }
-  .animate-slide-in-left {
-    animation: slide-in-left 0.3s ease-out;
-  }
-`;
-document.head.appendChild(style);
-// ==================== PARTIE 3/6 : VUE LOGIN & NAVIGATION ====================
+// ==================== FIN PARTIE 3/7 ====================
+// ==================== PARTIE 4/7 : LOGIN, NAVIGATION & FIDÉLITÉ ====================
+// Copiez ce code après la partie 3/7
 
     // ==================== VUE LOGIN/INSCRIPTION ====================
     const LoginView = ({ onLogin, onRegister }) => {
@@ -632,6 +869,37 @@ document.head.appendChild(style);
         setLoading(false);
       };
 
+      // Connexion Admin
+      const handleAdminLogin = async () => {
+        const adminEmail = 'admin@pshop.com';
+        const adminPassword = 'admin123';
+
+        setLoading(true);
+        setError('');
+        try {
+          const { signInWithEmailAndPassword, createUserWithEmailAndPassword, doc, setDoc, getDoc } = window.firebaseUtils;
+          
+          try {
+            await signInWithEmailAndPassword(window.firebaseAuth, adminEmail, adminPassword);
+          } catch (signInErr) {
+            if (signInErr.code === 'auth/user-not-found') {
+              const result = await createUserWithEmailAndPassword(window.firebaseAuth, adminEmail, adminPassword);
+              await setDoc(doc(window.firebaseDb, 'users', result.user.uid), {
+                name: 'Admin P-Shop',
+                email: adminEmail,
+                role: 'producer',
+                createdAt: new Date().toISOString()
+              });
+            } else {
+              throw signInErr;
+            }
+          }
+        } catch (err) {
+          setError('Erreur connexion admin: ' + err.message);
+        }
+        setLoading(false);
+      };
+
       // Inscription Email
       const handleEmailSignUp = async () => {
         if (!form.email || !form.password || !form.name || !form.phone) {
@@ -652,7 +920,7 @@ document.head.appendChild(style);
         setLoading(true);
         setError('');
         try {
-          const { createUserWithEmailAndPassword, doc, setDoc, getDoc, updateDoc } = window.firebaseUtils;
+          const { createUserWithEmailAndPassword, doc, setDoc, getDoc, updateDoc, collection, query, where, getDocs } = window.firebaseUtils;
           
           const result = await createUserWithEmailAndPassword(window.firebaseAuth, form.email, form.password);
           
@@ -661,9 +929,9 @@ document.head.appendChild(style);
 
           // Vérifier code parrainage
           if (form.referralCode) {
-            const usersRef = window.firebaseUtils.collection(window.firebaseDb, 'users');
-            const q = window.firebaseUtils.query(usersRef, window.firebaseUtils.where('referralCode', '==', form.referralCode));
-            const querySnapshot = await window.firebaseUtils.getDocs(q);
+            const usersRef = collection(window.firebaseDb, 'users');
+            const q = query(usersRef, where('referralCode', '==', form.referralCode));
+            const querySnapshot = await getDocs(q);
             
             if (!querySnapshot.empty) {
               const referrerDoc = querySnapshot.docs[0];
@@ -722,7 +990,7 @@ document.head.appendChild(style);
             <button
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full bg-white hover:bg-gray-100 text-gray-800 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 border-2 border-gray-300 mb-6 transition disabled:opacity-50"
+              className="w-full bg-white hover:bg-gray-100 text-gray-800 font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-3 border-2 border-gray-300 mb-4 transition disabled:opacity-50"
             >
               <svg width="20" height="20" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -731,6 +999,15 @@ document.head.appendChild(style);
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
               Continuer avec Google
+            </button>
+
+            {/* Bouton Admin */}
+            <button
+              onClick={handleAdminLogin}
+              disabled={loading}
+              className="w-full bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 font-bold py-2 px-4 rounded-xl mb-6 transition disabled:opacity-50 text-sm"
+            >
+              🔑 Connexion Admin
             </button>
 
             <div className="relative mb-6">
@@ -829,26 +1106,26 @@ document.head.appendChild(style);
     };
 
     // ==================== BARRE DE NAVIGATION ====================
-const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
-  const [showMenu, setShowMenu] = useState(false);
-  const tier = getLoyaltyTier(points || 0);
-  
-  if (!user) return null;
+    const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
+      const [showMenu, setShowMenu] = useState(false);
+      const tier = getLoyaltyTier(points || 0);
+      
+      if (!user) return null;
 
-  return (
-    <>
-      <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-          <h1 
-            className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" 
-            onClick={() => onNavigate('home')}
-          >
-            P-Shop
-          </h1>
-          
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex items-center gap-3">
-              <span className="text-pink-300 text-sm">👋 {user?.name || 'Utilisateur'}</span>
+      return (
+        <>
+          <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+              <h1 
+                className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" 
+                onClick={() => onNavigate('home')}
+              >
+                P-Shop
+              </h1>
+              
+              <div className="flex items-center gap-3">
+                <div className="hidden md:flex items-center gap-3">
+                  <span className="text-pink-300 text-sm">👋 {user?.name || 'Utilisateur'}</span>
                   
                   {user?.role === 'client' && (
                     <>
@@ -991,8 +1268,9 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
       );
     };
 
-// ==================== FIN PARTIE 3/6 ====================
-// ==================== PARTIE 4/6 : VUES CLIENT ====================
+// ==================== FIN PARTIE 4/7 ====================
+// ==================== PARTIE 5/7 : VUES CLIENT (HOME, FAVORIS, PANIER, COMMANDES) ====================
+// Copiez ce code après la partie 4/7
 
     // ==================== VUE ACCUEIL (PRODUITS) ====================
     const HomeView = ({ 
@@ -1005,7 +1283,10 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
       onToggleFavorite,
       onOpenSurvey,
       userRole,
-      userFlavors
+      userFlavors,
+      onAddProduct,
+      onEditProduct,
+      onDeleteProduct
     }) => {
       const filteredProducts = useMemo(() => 
         products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())), 
@@ -1043,6 +1324,13 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
                   <Icon name="Edit" size={20} className="text-pink-400" />
                 </div>
               </button>
+            )}
+
+            {userRole === 'producer' && (
+              <Button onClick={onAddProduct} className="w-full">
+                <Icon name="Plus" size={20} />
+                AJOUTER UN PRODUIT
+              </Button>
             )}
           </div>
 
@@ -1086,6 +1374,23 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
                             className={isFavorite ? 'fill-pink-500 text-pink-500' : 'text-white'} 
                           />
                         </button>
+                      )}
+
+                      {userRole === 'producer' && (
+                        <div className="absolute top-4 right-4 flex gap-2">
+                          <button
+                            onClick={() => onEditProduct(p)}
+                            className="bg-blue-500/80 hover:bg-blue-500 p-2 rounded-full transition"
+                          >
+                            <Icon name="Edit" size={20} className="text-white" />
+                          </button>
+                          <button
+                            onClick={() => onDeleteProduct(p.id)}
+                            className="bg-red-500/80 hover:bg-red-500 p-2 rounded-full transition"
+                          >
+                            <Icon name="Trash2" size={20} className="text-white" />
+                          </button>
+                        </div>
                       )}
                       
                       <button 
@@ -1141,9 +1446,9 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
           {favoriteProducts.length === 0 ? (
             <div className="text-center py-12">
               <Icon name="Heart" size={64} className="mx-auto text-pink-400/30 mb-4" />
-              <p className="text-pink-300 text-lg mb-4">Aucun favori pour le moment</p>
-              <p className="text-pink-400 text-sm">
-                Cliquez sur le ❤️ pour ajouter des produits à vos favoris
+              <p className="text-pink-300 text-lg mb-4">Aucun produit favori</p>
+              <p className="text-pink-300/70 text-sm">
+                Cliquez sur le ❤️ sur un produit pour l'ajouter à vos favoris
               </p>
             </div>
           ) : (
@@ -1180,7 +1485,7 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
                       </span>
                       <Button 
                         onClick={() => onAddToCart(p)} 
-                        className="text-sm px-3 py-2" 
+                        className="text-sm px-3 py-2"
                         disabled={p.stock <= 0}
                       >
                         AJOUTER
@@ -1370,8 +1675,9 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
       );
     };
 
-// ==================== FIN PARTIE 4/6 ====================
-// ==================== PARTIE 5/6 : PARRAINAGE, PROMO, TUTORIEL & ADMIN ====================
+// ==================== FIN PARTIE 5/7 ==================
+// ==================== PARTIE 6/7 : PARRAINAGE, PROMO, TUTORIEL & STATISTIQUES ====================
+// Copiez ce code après la partie 5/7
 
     // ==================== VUE PARRAINAGE ====================
     const ReferralView = ({ user, referrals }) => {
@@ -1727,50 +2033,9 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
       );
     };
 
-// ==================== FIN PARTIE 5/6 ====================
-// ==================== PARTIE 6/6 : ADMIN + APP PRINCIPAL + FIREBASE ====================
-
-    // ==================== VUE ADMIN PRODUITS ====================
-    const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProduct }) => {
-      return (
-        <Card className="p-6">
-          <h2 className="text-3xl font-black text-white mb-6">📦 Gestion des Produits</h2>
-          
-          <Button onClick={onAddProduct} className="mb-6">
-            <Icon name="Upload" size={20} />
-            AJOUTER UN PRODUIT
-          </Button>
-          
-          <div className="space-y-3">
-            {products.map(p => (
-              <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-pink-500/20">
-                <div className="flex items-center gap-3">
-                  <img src={p.img} alt={p.name} className="w-16 h-16 rounded-lg object-cover" />
-                  <div>
-                    <p className="text-white font-bold">{p.name}</p>
-                    <p className="text-pink-300 text-sm">{p.price.toFixed(2)}€ - Stock: {p.stock}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => onEditProduct(p)} 
-                    className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition"
-                  >
-                    <Icon name="Edit" size={20} />
-                  </button>
-                  <button 
-                    onClick={() => onDeleteProduct(p.id)} 
-                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition"
-                  >
-                    <Icon name="Trash2" size={20} />
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      );
-    };
+// ==================== FIN PARTIE 6/7 ====================
+// ==================== PARTIE 7/7 : ADMIN & APP PRINCIPAL ====================
+// Copiez ce code après la partie 6/7
 
     // ==================== VUE ADMIN COMMANDES ====================
     const AdminOrdersView = ({ orders, onConfirmOrder, onDeleteOrder }) => {
@@ -1863,6 +2128,8 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
       const [userFlavors, setUserFlavors] = useState([]);
       const [allFlavors, setAllFlavors] = useState(INITIAL_FLAVORS);
       const [surveyResults, setSurveyResults] = useState({});
+      const [showProductForm, setShowProductForm] = useState(false);
+      const [editingProduct, setEditingProduct] = useState(null);
 
       // Initialisation Firebase
       useEffect(() => {
@@ -2111,75 +2378,37 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
         }
       };
 
-      const addProduct = async () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = async (e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
-
-          const name = prompt('Nom du produit');
-          if (!name) return;
-
-          const price = parseFloat(prompt('Prix (€)', '10.00'));
-          if (!price || isNaN(price)) return alert('Prix invalide');
-
-          const stock = parseInt(prompt('Quantité en stock'));
-          if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
-
-          const desc = prompt('Description');
-          if (!desc) return;
-
-          try {
-            const { storageRef, uploadBytes, getDownloadURL } = window.firebaseUtils;
-            const { addDoc, collection } = window.firebaseUtils;
-
-            const imgRef = storageRef(window.firebaseStorage, `products/${Date.now()}_${f.name}`);
-            await uploadBytes(imgRef, f);
-            const imgUrl = await getDownloadURL(imgRef);
-
-            await addDoc(collection(window.firebaseDb, 'products'), {
-              name,
-              price,
-              stock,
-              img: imgUrl,
-              desc,
-              createdAt: new Date().toISOString()
-            });
-
-            alert('Produit ajouté !');
-          } catch (err) {
-            alert('Erreur: ' + err.message);
-          }
-        };
-        input.click();
+      const openAddProductForm = () => {
+        setEditingProduct(null);
+        setShowProductForm(true);
       };
 
-      const editProduct = async (p) => {
-        const name = prompt('Nouveau nom', p.name);
-        if (!name) return;
+      const openEditProductForm = (product) => {
+        setEditingProduct(product);
+        setShowProductForm(true);
+      };
 
-        const price = parseFloat(prompt('Nouveau prix', p.price));
-        if (!price || isNaN(price)) return alert('Prix invalide');
-
-        const stock = parseInt(prompt('Nouveau stock', p.stock));
-        if (isNaN(stock) || stock < 0) return alert('Stock invalide');
-
-        const desc = prompt('Description', p.desc);
-        if (!desc) return;
-
+      const handleProductSubmit = async (productData) => {
         try {
-          const { doc, updateDoc } = window.firebaseUtils;
-          await updateDoc(doc(window.firebaseDb, 'products', p.id), {
-            name,
-            price,
-            stock,
-            desc
-          });
-          alert('Produit modifié !');
+          const { addDoc, collection, doc, updateDoc } = window.firebaseUtils;
+
+          if (editingProduct) {
+            // Modification
+            await updateDoc(doc(window.firebaseDb, 'products', editingProduct.id), {
+              ...productData,
+              updatedAt: new Date().toISOString()
+            });
+            alert('Produit modifié !');
+          } else {
+            // Ajout
+            await addDoc(collection(window.firebaseDb, 'products'), {
+              ...productData,
+              createdAt: new Date().toISOString()
+            });
+            alert('Produit ajouté !');
+          }
         } catch (err) {
-          alert('Erreur: ' + err.message);
+          throw err;
         }
       };
 
@@ -2248,6 +2477,9 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
                 onOpenSurvey={() => setShowSurvey(true)}
                 userRole={userData?.role}
                 userFlavors={userFlavors}
+                onAddProduct={openAddProductForm}
+                onEditProduct={openEditProductForm}
+                onDeleteProduct={deleteProduct}
               />
             )}
 
@@ -2294,12 +2526,6 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
 
             {view === 'admin' && userData?.role === 'producer' && (
               <div className="space-y-6">
-                <AdminProductsView
-                  products={products}
-                  onAddProduct={addProduct}
-                  onEditProduct={editProduct}
-                  onDeleteProduct={deleteProduct}
-                />
                 <AdminOrdersView
                   orders={orders}
                   onConfirmOrder={confirmOrder}
@@ -2352,6 +2578,17 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
               onClose={() => setShowQRCode(null)}
             />
           )}
+
+          {showProductForm && (
+            <ProductFormModal
+              product={editingProduct}
+              onClose={() => {
+                setShowProductForm(false);
+                setEditingProduct(null);
+              }}
+              onSubmit={handleProductSubmit}
+            />
+          )}
         </div>
       );
     }
@@ -2361,5 +2598,3 @@ const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
   </script>
 </body>
 </html>
-
-
