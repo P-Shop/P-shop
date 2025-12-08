@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -14,22 +13,413 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useMemo, useCallback, useEffect } = React;
-    const S = {btn: "font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50", primary: "bg-gradient-to-r from-pink-500 to-orange-500 text-white hover:scale-105", secondary: "bg-pink-500/20 hover:bg-pink-500/30 text-pink-400", input: "w-full bg-white/10 border border-pink-500/30 rounded-xl p-3 text-white placeholder-pink-300/50", card: "bg-black/40 backdrop-blur-xl rounded-2xl border-2 border-pink-500/50 overflow-hidden shadow-2xl"};
+
+    // ==================== CONFIGURATION ====================
+    const INITIAL_FLAVORS = [
+      'Sakura Grape 16k', 'Blue Razz Ice 16k', 'Cherry Berry 16k',
+      'Summer Peach Ice 16k', 'Berry Burst 16k', 'Watermelon Ice 16k',
+      'Coca', 'Grape Ice 18k', 'Mango Ice', 'Strawberry Kiwi'
+    ];
+
+    const LOYALTY_TIERS = [
+      { name: 'Bronze', minPoints: 0, color: 'from-orange-700 to-orange-500' },
+      { name: 'Argent', minPoints: 500, color: 'from-gray-400 to-gray-300' },
+      { name: 'Or', minPoints: 1000, color: 'from-yellow-500 to-yellow-300' },
+      { name: 'Platine', minPoints: 1800, color: 'from-purple-500 to-pink-400' }
+    ];
+
+    const S = {
+      btn: "font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50",
+      primary: "bg-gradient-to-r from-pink-500 to-orange-500 text-white hover:scale-105",
+      secondary: "bg-pink-500/20 hover:bg-pink-500/30 text-pink-400",
+      input: "w-full bg-white/10 border border-pink-500/30 rounded-xl p-3 text-white placeholder-pink-300/50",
+      card: "bg-black/40 backdrop-blur-xl rounded-2xl border-2 border-pink-500/50 overflow-hidden shadow-2xl"
+    };
+
+    // ==================== COMPOSANTS ICÔNES ====================
     const Icon = ({ name, size = 20, className = "" }) => {
-      const icons = {ShoppingCart: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>, Search: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>, Plus: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>, Minus: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>, Edit: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>, Trash2: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>, Package: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>, LogOut: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>, DollarSign: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>, TrendingUp: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>, BarChart3: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>, Upload: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>, X: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>, Eye: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>, Clock: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, Check: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>, Phone: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>, List: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>};
+      const icons = {
+        ShoppingCart: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>,
+        Search: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+        Plus: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+        Minus: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="5" y1="12" x2="19" y2="12"/></svg>,
+        Edit: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>,
+        Trash2: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>,
+        Package: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,
+        LogOut: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>,
+        DollarSign: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>,
+        TrendingUp: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>,
+        BarChart3: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg>,
+        Upload: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>,
+        X: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>,
+        Eye: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>,
+        Phone: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,
+        List: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>,
+        Heart: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>,
+        Menu: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>,
+        Home: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>,
+        Gift: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>,
+        Tag: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>,
+        BookOpen: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+        Users: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
+        Camera: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
+        Check: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
+        Star: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+      };
       return icons[name] || null;
     };
-    const Button = ({ children, onClick, variant = 'primary', className = '', disabled }) => <button onClick={onClick} disabled={disabled} className={`${S.btn} ${S[variant]} ${className}`}>{children}</button>;
-    const Input = ({ icon, ...props }) => <div className="relative">{icon && <Icon name={icon} size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-400" />}<input {...props} className={`${S.input} ${icon ? 'pl-12' : ''}`} /></div>;
-    const Card = ({ children, className = '', hover }) => <div className={`${S.card} ${hover ? 'hover:scale-105 transition' : ''} ${className}`}>{children}</div>;
-    const Modal = ({ product, onClose }) => {if (!product) return null; return <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}><div className={`${S.card} max-w-2xl w-full`} onClick={e => e.stopPropagation()}><div className="relative"><img src={product.img} alt={product.name} className="w-full h-96 object-cover" /><button onClick={onClose} className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full"><Icon name="X" size={24} /></button></div><div className="p-6"><h2 className="text-3xl font-black text-white mb-4">{product.name}</h2><p className="text-pink-300 text-lg mb-6">{product.desc}</p><div className="flex justify-between items-center"><span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">{product.price.toFixed(2)}€</span><span className="text-pink-300">Stock: {product.stock} unité{product.stock > 1 ? 's' : ''}</span></div></div></div></div>;};
-    
+
+    // ==================== COMPOSANTS UI DE BASE ====================
+    const Button = ({ children, onClick, variant = 'primary', className = '', disabled }) => (
+      <button onClick={onClick} disabled={disabled} className={`${S.btn} ${S[variant]} ${className}`}>
+        {children}
+      </button>
+    );
+
+    const Input = ({ icon, ...props }) => (
+      <div className="relative">
+        {icon && <Icon name={icon} size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-400" />}
+        <input {...props} className={`${S.input} ${icon ? 'pl-12' : ''}`} />
+      </div>
+    );
+
+    const Card = ({ children, className = '', hover }) => (
+      <div className={`${S.card} ${hover ? 'hover:scale-105 transition' : ''} ${className}`}>
+        {children}
+      </div>
+    );
+
+// ==================== FIN PARTIE 1/6 ====================
+// COPIEZ LA PARTIE 2/6 JUSTE APRÈS CETTE LIGNE
+// ==================== PARTIE 2/6 : MODALS & UTILITAIRES ====================
+
+    // Fonction pour générer un code de parrainage unique
+    const generateReferralCode = (name) => {
+      return `PUFF${name.toUpperCase().substring(0, 3)}${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    };
+
+    // Fonction pour calculer le palier de fidélité
+    const getLoyaltyTier = (points) => {
+      for (let i = LOYALTY_TIERS.length - 1; i >= 0; i--) {
+        if (points >= LOYALTY_TIERS[i].minPoints) {
+          return LOYALTY_TIERS[i];
+        }
+      }
+      return LOYALTY_TIERS[0];
+    };
+
+    // Fonction pour obtenir le badge de statut
+    const getStatusBadge = (status) => {
+      const badges = {
+        pending: <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-bold">⏳ En attente</span>,
+        confirmed: <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">✅ Confirmée</span>,
+        delivered: <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold">📦 Livrée</span>
+      };
+      return badges[status] || badges.pending;
+    };
+
+    // ==================== MODAL DÉTAILS PRODUIT ====================
+    const Modal = ({ product, onClose, onAddToCart, isFavorite, onToggleFavorite }) => {
+      if (!product) return null;
+      
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+          <div className={`${S.card} max-w-2xl w-full`} onClick={e => e.stopPropagation()}>
+            <div className="relative">
+              <img src={product.img} alt={product.name} className="w-full h-96 object-cover" />
+              <button onClick={onClose} className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition">
+                <Icon name="X" size={24} />
+              </button>
+              {onToggleFavorite && (
+                <button 
+                  onClick={() => onToggleFavorite(product.id)} 
+                  className="absolute top-4 left-4 bg-black/60 hover:bg-black/80 text-white p-2 rounded-full transition"
+                >
+                  <Icon name="Heart" size={24} className={isFavorite ? 'fill-pink-500 text-pink-500' : ''} />
+                </button>
+              )}
+            </div>
+            <div className="p-6">
+              <h2 className="text-3xl font-black text-white mb-4">{product.name}</h2>
+              <p className="text-pink-300 text-lg mb-6">{product.desc}</p>
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                  {product.price.toFixed(2)}€
+                </span>
+                <span className="text-pink-300">Stock: {product.stock} unité{product.stock > 1 ? 's' : ''}</span>
+              </div>
+              {onAddToCart && (
+                <Button onClick={() => { onAddToCart(product); onClose(); }} className="w-full" disabled={product.stock <= 0}>
+                  <Icon name="ShoppingCart" size={20} />
+                  AJOUTER AU PANIER
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==================== MODAL SONDAGE GOÛTS ====================
+    const SurveyModal = ({ onClose, flavors, onSubmit, userFlavors }) => {
+      const [selected, setSelected] = useState(userFlavors || []);
+      const [newFlavor, setNewFlavor] = useState('');
+
+      const toggleFlavor = (flavor) => {
+        if (selected.includes(flavor)) {
+          setSelected(selected.filter(f => f !== flavor));
+        } else if (selected.length < 5) {
+          setSelected([...selected, flavor]);
+        } else {
+          alert('Maximum 5 goûts sélectionnés');
+        }
+      };
+
+      const addNewFlavor = () => {
+        if (!newFlavor.trim()) return;
+        if (flavors.includes(newFlavor)) {
+          alert('Ce goût existe déjà');
+          return;
+        }
+        setSelected([...selected, newFlavor]);
+        setNewFlavor('');
+      };
+
+      const handleSubmit = () => {
+        if (selected.length < 2) {
+          alert('Veuillez sélectionner au moins 2 goûts');
+          return;
+        }
+        onSubmit(selected);
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+          <div className={`${S.card} max-w-2xl w-full max-h-[90vh] overflow-y-auto`} onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                  🍦 Modifier Produits
+                </h2>
+                <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
+                  <Icon name="X" size={24} />
+                </button>
+              </div>
+              
+              <p className="text-pink-300 mb-6">
+                Sélectionnez entre 2 et 5 produits préférés ({selected.length}/5)
+              </p>
+
+              <div className="grid grid-cols-2 gap-3 mb-6">
+                {flavors.map((flavor, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => toggleFlavor(flavor)}
+                    className={`p-3 rounded-xl border-2 transition ${
+                      selected.includes(flavor)
+                        ? 'bg-pink-500/30 border-pink-500 text-white'
+                        : 'bg-white/5 border-pink-500/30 text-pink-300 hover:border-pink-500/50'
+                    }`}
+                  >
+                    {flavor}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mb-6">
+                <p className="text-pink-300 mb-3">Ou proposez un nouveau produit :</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newFlavor}
+                    onChange={(e) => setNewFlavor(e.target.value)}
+                    placeholder="Votre suggestion..."
+                    className={S.input}
+                  />
+                  <button
+                    onClick={addNewFlavor}
+                    className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-3 rounded-xl"
+                  >
+                    <Icon name="Plus" size={24} />
+                  </button>
+                </div>
+              </div>
+
+              {selected.length > 0 && (
+                <div className="mb-6">
+                  <p className="text-pink-300 mb-3">Sélectionnées :</p>
+                  <div className="flex flex-wrap gap-2">
+                    {selected.map((flavor, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-pink-500/20 text-pink-300 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                      >
+                        {flavor}
+                        <button onClick={() => toggleFlavor(flavor)} className="hover:text-pink-100">
+                          <Icon name="X" size={16} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={handleSubmit} className="w-full" disabled={selected.length < 2}>
+                MODIFIER ({selected.length}/5)
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==================== MODAL SCANNER QR CODE ====================
+    const QRScannerModal = ({ onClose, onValidate }) => {
+      const [orderCode, setOrderCode] = useState('');
+      const [scanning, setScanning] = useState(false);
+
+      const handleValidate = () => {
+        if (!orderCode.trim()) {
+          alert('Veuillez entrer un code de commande');
+          return;
+        }
+        onValidate(orderCode);
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
+          <div className={`${S.card} max-w-lg w-full`} onClick={e => e.stopPropagation()}>
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-black text-white flex items-center gap-2">
+                  📷 Scanner QR Code
+                </h2>
+                <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
+                  <Icon name="X" size={24} />
+                </button>
+              </div>
+
+              {!scanning ? (
+                <Button onClick={() => setScanning(true)} className="w-full mb-6">
+                  <Icon name="Camera" size={20} />
+                  ACTIVER LA CAMÉRA
+                </Button>
+              ) : (
+                <div className="bg-white/5 rounded-xl p-8 mb-6 text-center border-2 border-pink-500/30">
+                  <Icon name="Camera" size={64} className="mx-auto text-pink-400 mb-4" />
+                  <p className="text-pink-300 mb-4">Caméra active...</p>
+                  <Button onClick={() => setScanning(false)} variant="secondary">
+                    Arrêter le scanner
+                  </Button>
+                </div>
+              )}
+
+              <p className="text-pink-300 text-center mb-4">ou entrez le code manuellement :</p>
+
+              <div className="mb-6">
+                <div className="relative">
+                  <Icon name="Package" size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-pink-400" />
+                  <input
+                    type="text"
+                    value={orderCode}
+                    onChange={(e) => setOrderCode(e.target.value)}
+                    placeholder="PSHOP_ORDER_123456"
+                    className={`${S.input} pl-12`}
+                  />
+                </div>
+              </div>
+
+              <Button onClick={handleValidate} className="w-full">
+                VALIDER LIVRAISON
+              </Button>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==================== MODAL MENU MOBILE ====================
+    const MobileMenu = ({ user, onNavigate, onLogout, onClose }) => {
+      const menuItems = user.role === 'client' ? [
+        { icon: 'Home', label: 'Accueil', view: 'home' },
+        { icon: 'Heart', label: 'Mes Favoris', view: 'favorites' },
+        { icon: 'ShoppingCart', label: 'Mon Panier', view: 'cart' },
+        { icon: 'List', label: 'Mes Commandes', view: 'orders' },
+        { icon: 'Gift', label: 'Parrainage', view: 'referral' },
+        { icon: 'Tag', label: 'Mes Codes Promo', view: 'promo' },
+        { icon: 'BookOpen', label: 'Voir le tutoriel', view: 'tutorial' }
+      ] : [
+        { icon: 'Home', label: 'Accueil', view: 'home' },
+        { icon: 'BarChart3', label: 'Statistiques', view: 'stats' },
+        { icon: 'Package', label: 'Gestion Produits', view: 'admin' },
+        { icon: 'Camera', label: 'Scanner QR', view: 'scanner' }
+      ];
+
+      return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50" onClick={onClose}>
+          <div className="bg-gradient-to-br from-purple-900/95 via-pink-800/95 to-orange-700/95 w-80 h-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-2xl font-black text-white">Menu</h2>
+              <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
+                <Icon name="X" size={28} />
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {menuItems.map((item, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => { onNavigate(item.view); onClose(); }}
+                  className="w-full flex items-center gap-4 p-4 rounded-xl bg-white/5 hover:bg-white/10 text-pink-100 transition"
+                >
+                  <Icon name={item.icon} size={24} />
+                  <span className="text-lg">{item.label}</span>
+                </button>
+              ))}
+
+              <button
+                onClick={() => { onLogout(); onClose(); }}
+                className="w-full flex items-center gap-4 p-4 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-400 transition mt-6"
+              >
+                <Icon name="LogOut" size={24} />
+                <span className="text-lg">Déconnexion</span>
+              </button>
+            </div>
+
+            {user && (
+              <div className="absolute bottom-6 left-6 right-6">
+                <div className="bg-black/40 rounded-xl p-4 border-2 border-pink-500/30">
+                  <p className="text-pink-300 text-sm mb-1">👋 Connecté en tant que</p>
+                  <p className="text-white font-bold text-lg">{user.name}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    };
+
+// ==================== FIN PARTIE 2/6 ====================
+// COPIEZ LA PARTIE 3/6 JUSTE APRÈS CETTE LIGNE
+// ==================== PARTIE 3/6 : VUE LOGIN & NAVIGATION ====================
+
+    // ==================== VUE LOGIN/INSCRIPTION ====================
     const LoginView = ({ onLogin, onRegister }) => {
       const [mode, setMode] = useState('login');
-      const [form, setForm] = useState({ name: '', password: '', confirmPassword: '', phone: '' });
+      const [form, setForm] = useState({ 
+        name: '', 
+        password: '', 
+        confirmPassword: '', 
+        phone: '',
+        referralCode: '' 
+      });
       
       const handleSubmit = () => {
-        if (!form.name || !form.password) return alert('Veuillez remplir tous les champs');
+        if (!form.name || !form.password) {
+          return alert('Veuillez remplir tous les champs');
+        }
         
         if (mode === 'register') {
           if (!form.phone) return alert('Veuillez entrer votre numéro de téléphone');
@@ -45,75 +435,1214 @@
       return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-800 to-orange-700 flex items-center justify-center p-4">
           <Card className="p-8 max-w-md w-full">
-            <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 mb-8 text-center">PUFF JR CASES</h1>
+            <div className="text-center mb-8">
+              <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Icon name="Package" size={40} className="text-white" />
+              </div>
+              <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                PUFF JR CASES
+              </h1>
+            </div>
+            
             <div className="flex gap-2 mb-6">
-              <Button onClick={() => setMode('login')} variant={mode === 'login' ? 'primary' : 'secondary'} className="flex-1">Connexion</Button>
-              <Button onClick={() => setMode('register')} variant={mode === 'register' ? 'primary' : 'secondary'} className="flex-1">Inscription</Button>
+              <Button 
+                onClick={() => setMode('login')} 
+                variant={mode === 'login' ? 'primary' : 'secondary'} 
+                className="flex-1"
+              >
+                Connexion
+              </Button>
+              <Button 
+                onClick={() => setMode('register')} 
+                variant={mode === 'register' ? 'primary' : 'secondary'} 
+                className="flex-1"
+              >
+                Inscription
+              </Button>
             </div>
+            
             <div className="space-y-3">
-              <Input type="text" placeholder="Identifiant" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
-              {mode === 'register' && <Input type="tel" placeholder="Numéro de téléphone" value={form.phone} onChange={e => setForm({...form, phone: e.target.value})} icon="Phone" />}
-              <Input type="password" placeholder="Mot de passe" value={form.password} onChange={e => setForm({...form, password: e.target.value})} />
-              {mode === 'register' && <Input type="password" placeholder="Confirmer le mot de passe" value={form.confirmPassword} onChange={e => setForm({...form, confirmPassword: e.target.value})} />}
-              <Button onClick={handleSubmit} className="w-full">{mode === 'login' ? 'SE CONNECTER' : 'CRÉER COMPTE'}</Button>
+              <Input 
+                type="text" 
+                placeholder="Identifiant" 
+                value={form.name} 
+                onChange={e => setForm({...form, name: e.target.value})} 
+              />
+              
+              {mode === 'register' && (
+                <Input 
+                  type="tel" 
+                  placeholder="Numéro de téléphone" 
+                  value={form.phone} 
+                  onChange={e => setForm({...form, phone: e.target.value})} 
+                  icon="Phone" 
+                />
+              )}
+              
+              <Input 
+                type="password" 
+                placeholder="Mot de passe" 
+                value={form.password} 
+                onChange={e => setForm({...form, password: e.target.value})} 
+              />
+              
+              {mode === 'register' && (
+                <>
+                  <Input 
+                    type="password" 
+                    placeholder="Confirmer le mot de passe" 
+                    value={form.confirmPassword} 
+                    onChange={e => setForm({...form, confirmPassword: e.target.value})} 
+                  />
+                  <Input 
+                    type="text" 
+                    placeholder="Code de parrainage (optionnel)" 
+                    value={form.referralCode} 
+                    onChange={e => setForm({...form, referralCode: e.target.value})} 
+                    icon="Gift"
+                  />
+                </>
+              )}
+              
+              <Button onClick={handleSubmit} className="w-full">
+                {mode === 'login' ? 'SE CONNECTER' : 'CRÉER COMPTE'}
+              </Button>
             </div>
-            <p className="text-pink-300/70 text-xs text-center mt-4">Vendeur: Bradley / Brad@mar270508</p>
+            
+            <p className="text-pink-300/70 text-xs text-center mt-6">
+              Vendeur: Bradley / Brad@mar270508
+            </p>
           </Card>
         </div>
       );
     };
-    function App() {
-      const INITIAL_USERS = [{ name: 'Bradley', password: 'Brad@mar270508', role: 'producer', phone: '' }];
-      const loadUsers = () => {try {const stored = localStorage.getItem('puff_users'); return stored ? JSON.parse(stored) : INITIAL_USERS;} catch { return INITIAL_USERS; }};
-      const saveUsers = (users) => {try { localStorage.setItem('puff_users', JSON.stringify(users)); } catch (e) { console.error('Erreur:', e); }};
-      const loadUser = () => {try {const stored = localStorage.getItem('puff_current_user'); return stored ? JSON.parse(stored) : null;} catch { return null; }};
-      const loadProducts = () => {try {const stored = localStorage.getItem('puff_products'); return stored ? JSON.parse(stored) : [{ id: 1, name: 'Coque Galaxy', price: 24.99, stock: 10, img: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400', desc: 'Design Puff Jr coloré' }, { id: 2, name: 'Coque Neon', price: 29.99, stock: 8, img: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400', desc: 'Style néon vibrant' }, { id: 3, name: 'Coque Cosmic', price: 27.99, stock: 15, img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400', desc: 'Motifs cosmiques' }];} catch { return [{ id: 1, name: 'Coque Galaxy', price: 24.99, stock: 10, img: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400', desc: 'Design Puff Jr coloré' }, { id: 2, name: 'Coque Neon', price: 29.99, stock: 8, img: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400', desc: 'Style néon vibrant' }, { id: 3, name: 'Coque Cosmic', price: 27.99, stock: 15, img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400', desc: 'Motifs cosmiques' }];}};
-      const loadOrders = () => {try {const stored = localStorage.getItem('puff_orders'); return stored ? JSON.parse(stored) : [];} catch { return []; }};
+
+    // ==================== BARRE DE NAVIGATION ====================
+    const Navigation = ({ user, cartCount, onNavigate, onLogout, points }) => {
+      const [showMenu, setShowMenu] = useState(false);
+      const tier = getLoyaltyTier(points);
+
+      return (
+        <>
+          <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-40">
+            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+              <h1 
+                className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" 
+                onClick={() => onNavigate('home')}
+              >
+                PUFF JR
+              </h1>
+              
+              <div className="flex items-center gap-3">
+                {/* Desktop Navigation */}
+                <div className="hidden md:flex items-center gap-3">
+                  <span className="text-pink-300 text-sm">👋 {user.name}</span>
+                  
+                  {user.role === 'client' && (
+                    <>
+                      <div className="bg-pink-500/20 px-3 py-1 rounded-lg">
+                        <span className="text-pink-300 text-sm">⭐ {points} pts</span>
+                      </div>
+                      <button 
+                        onClick={() => onNavigate('favorites')} 
+                        className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="Heart" size={18} />
+                      </button>
+                      <button 
+                        onClick={() => onNavigate('orders')} 
+                        className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="List" size={18} />
+                      </button>
+                      <button 
+                        onClick={() => onNavigate('cart')} 
+                        className="relative bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="ShoppingCart" size={18} />
+                        {cartCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                            {cartCount}
+                          </span>
+                        )}
+                      </button>
+                    </>
+                  )}
+                  
+                  {user.role === 'producer' && (
+                    <>
+                      <button 
+                        onClick={() => onNavigate('stats')} 
+                        className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="BarChart3" size={18} />
+                      </button>
+                      <button 
+                        onClick={() => onNavigate('admin')} 
+                        className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="Package" size={18} />
+                      </button>
+                    </>
+                  )}
+                  
+                  <button 
+                    onClick={onLogout} 
+                    className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                  >
+                    <Icon name="LogOut" size={18} />
+                  </button>
+                </div>
+
+                {/* Mobile Menu Button */}
+                <button 
+                  onClick={() => setShowMenu(true)} 
+                  className="md:hidden bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                >
+                  <Icon name="Menu" size={24} />
+                </button>
+                
+                {/* Cart badge for mobile */}
+                {user.role === 'client' && cartCount > 0 && (
+                  <button 
+                    onClick={() => onNavigate('cart')} 
+                    className="md:hidden relative bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                  >
+                    <Icon name="ShoppingCart" size={20} />
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">
+                      {cartCount}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </nav>
+
+          {showMenu && (
+            <MobileMenu 
+              user={user} 
+              onNavigate={onNavigate} 
+              onLogout={onLogout} 
+              onClose={() => setShowMenu(false)} 
+            />
+          )}
+        </>
+      );
+    };
+
+    // ==================== AFFICHAGE PALIER FIDÉLITÉ ====================
+    const LoyaltyDisplay = ({ points }) => {
+      const currentTier = getLoyaltyTier(points);
+      const nextTier = LOYALTY_TIERS.find(t => t.minPoints > points);
+      const progress = nextTier 
+        ? ((points - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100 
+        : 100;
+
+      return (
+        <Card className="p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`bg-gradient-to-r ${currentTier.color} w-12 h-12 rounded-full flex items-center justify-center`}>
+                <Icon name="Star" size={24} className="text-white" />
+              </div>
+              <div>
+                <p className="text-white font-bold text-xl">{currentTier.name}</p>
+                <p className="text-pink-300 text-sm">{points} points</p>
+              </div>
+            </div>
+            {nextTier && (
+              <div className="text-right">
+                <p className="text-pink-300 text-xs">Prochain palier</p>
+                <p className="text-white font-bold">{nextTier.name}</p>
+                <p className="text-pink-400 text-xs">{nextTier.minPoints - points} pts restants</p>
+              </div>
+            )}
+          </div>
+          
+          {nextTier && (
+            <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+              <div 
+                className={`h-full bg-gradient-to-r ${currentTier.color} transition-all duration-500`}
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          )}
+          
+          {!nextTier && (
+            <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-pink-500/30">
+              <p className="text-pink-300 text-center">
+                🎉 Vous avez atteint le niveau maximum !
+              </p>
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+// ==================== FIN PARTIE 3/6 ====================
+// COPIEZ LA PARTIE 4/6 JUSTE APRÈS CETTE LIGNE
+// ==================== PARTIE 4/6 : VUES CLIENT ====================
+
+    // ==================== VUE ACCUEIL (PRODUITS) ====================
+    const HomeView = ({ 
+      products, 
+      search, 
+      setSearch, 
+      onAddToCart, 
+      onProductClick,
+      favorites,
+      onToggleFavorite,
+      onOpenSurvey,
+      userRole,
+      userFlavors
+    }) => {
+      const filteredProducts = useMemo(() => 
+        products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())), 
+        [products, search]
+      );
+
+      return (
+        <>
+          <div className="mb-6 space-y-4">
+            <Input 
+              type="text" 
+              placeholder="Rechercher un produit..." 
+              value={search} 
+              onChange={e => setSearch(e.target.value)} 
+              icon="Search" 
+            />
+            
+            {userRole === 'client' && (
+              <button
+                onClick={onOpenSurvey}
+                className="w-full bg-gradient-to-r from-pink-500/20 to-orange-500/20 hover:from-pink-500/30 hover:to-orange-500/30 border-2 border-pink-500/50 rounded-xl p-4 transition"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Icon name="List" size={24} className="text-pink-400" />
+                    <div className="text-left">
+                      <p className="text-white font-bold">Sondage Produits</p>
+                      <p className="text-pink-300 text-sm">
+                        {userFlavors?.length > 0 
+                          ? `${userFlavors.length} goûts sélectionnés` 
+                          : 'Choisissez vos goûts préférés'}
+                      </p>
+                    </div>
+                  </div>
+                  <Icon name="Edit" size={20} className="text-pink-400" />
+                </div>
+              </button>
+            )}
+          </div>
+
+          {filteredProducts.length === 0 ? (
+            <Card className="p-12 text-center">
+              <Icon name="Search" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg mb-4">Aucun produit trouvé</p>
+              {search && (
+                <Button onClick={() => setSearch('')}>Réinitialiser la recherche</Button>
+              )}
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProducts.map(p => {
+                const isFavorite = favorites?.includes(p.id);
+                return (
+                  <Card key={p.id} hover>
+                    <div className="relative group">
+                      <img src={p.img} alt={p.name} className="w-full h-64 object-cover" />
+                      
+                      {p.stock <= 0 && (
+                        <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          RUPTURE DE STOCK
+                        </div>
+                      )}
+                      
+                      {p.stock > 0 && p.stock <= 5 && (
+                        <div className="absolute top-4 left-4 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                          Stock limité: {p.stock}
+                        </div>
+                      )}
+                      
+                      {userRole === 'client' && (
+                        <button
+                          onClick={() => onToggleFavorite(p.id)}
+                          className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 p-2 rounded-full transition"
+                        >
+                          <Icon 
+                            name="Heart" 
+                            size={20} 
+                            className={isFavorite ? 'fill-pink-500 text-pink-500' : 'text-white'} 
+                          />
+                        </button>
+                      )}
+                      
+                      <button 
+                        onClick={() => onProductClick(p)} 
+                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                      >
+                        <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
+                          <Icon name="Eye" size={24} className="text-white" />
+                        </div>
+                      </button>
+                    </div>
+                    
+                    <div className="p-4">
+                      <h3 className="text-xl font-bold text-white mb-2">{p.name}</h3>
+                      <p className="text-pink-300 text-sm mb-3 line-clamp-2">{p.desc}</p>
+                      
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                            {p.price.toFixed(2)}€
+                          </span>
+                          <p className="text-pink-300 text-xs mt-1">Stock: {p.stock}</p>
+                        </div>
+                        
+                        {userRole === 'client' && (
+                          <Button 
+                            onClick={() => onAddToCart(p)} 
+                            className="text-sm px-3 py-2" 
+                            disabled={p.stock <= 0}
+                          >
+                            AJOUTER
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </>
+      );
+    };
+
+    // ==================== VUE FAVORIS ====================
+    const FavoritesView = ({ products, favorites, onProductClick, onAddToCart, onToggleFavorite }) => {
+      const favoriteProducts = products.filter(p => favorites.includes(p.id));
+
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">❤️ Mes Favoris</h2>
+          
+          {favoriteProducts.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="Heart" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg mb-4">Aucun favori pour le moment</p>
+              <p className="text-pink-400 text-sm">
+                Cliquez sur le ❤️ pour ajouter des produits à vos favoris
+              </p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {favoriteProducts.map(p => (
+                <Card key={p.id} hover>
+                  <div className="relative group">
+                    <img src={p.img} alt={p.name} className="w-full h-64 object-cover" />
+                    
+                    <button
+                      onClick={() => onToggleFavorite(p.id)}
+                      className="absolute top-4 right-4 bg-black/60 hover:bg-black/80 p-2 rounded-full transition"
+                    >
+                      <Icon name="Heart" size={20} className="fill-pink-500 text-pink-500" />
+                    </button>
+                    
+                    <button 
+                      onClick={() => onProductClick(p)} 
+                      className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center"
+                    >
+                      <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full">
+                        <Icon name="Eye" size={24} className="text-white" />
+                      </div>
+                    </button>
+                  </div>
+                  
+                  <div className="p-4">
+                    <h3 className="text-xl font-bold text-white mb-2">{p.name}</h3>
+                    <p className="text-pink-300 text-sm mb-3 line-clamp-2">{p.desc}</p>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                        {p.price.toFixed(2)}€
+                      </span>
+                      <Button 
+                        onClick={() => onAddToCart(p)} 
+                        className="text-sm px-3 py-2" 
+                        disabled={p.stock <= 0}
+                      >
+                        AJOUTER
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+    // ==================== VUE PANIER ====================
+    const CartView = ({ cart, onUpdateQty, onRemoveItem, onCheckout, checkoutForm, setCheckoutForm }) => {
+      const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.qty, 0), [cart]);
+      const cartItemCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
+      const pointsToEarn = Math.floor(cartTotal * 10);
+
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">🛒 Mon Panier</h2>
+          
+          {cart.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="ShoppingCart" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg mb-4">Votre panier est vide</p>
+            </div>
+          ) : (
+            <>
+              {cart.map(i => (
+                <div key={i.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl mb-3 border border-pink-500/20">
+                  <div className="flex items-center gap-3">
+                    <img src={i.img} alt={i.name} className="w-16 h-16 rounded-lg object-cover" />
+                    <div>
+                      <p className="text-white font-bold">{i.name}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <button 
+                          onClick={() => onUpdateQty(i.id, -1)} 
+                          disabled={i.qty <= 1} 
+                          className="bg-pink-500/20 p-1 rounded hover:bg-pink-500/30 disabled:opacity-50"
+                        >
+                          <Icon name="Minus" size={16} className="text-pink-400" />
+                        </button>
+                        <span className="text-pink-300 w-8 text-center">{i.qty}</span>
+                        <button 
+                          onClick={() => onUpdateQty(i.id, 1)} 
+                          className="bg-pink-500/20 p-1 rounded hover:bg-pink-500/30"
+                        >
+                          <Icon name="Plus" size={16} className="text-pink-400" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="text-white font-bold">{(i.price * i.qty).toFixed(2)}€</span>
+                    <button 
+                      onClick={() => onRemoveItem(i.id)} 
+                      className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg"
+                    >
+                      <Icon name="Trash2" size={20} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              
+              <div className="border-t-2 border-pink-500/50 mt-6 pt-6">
+                <div className="bg-gradient-to-r from-pink-500/10 to-orange-500/10 rounded-xl p-4 mb-4 border border-pink-500/30">
+                  <div className="flex justify-between items-center">
+                    <span className="text-pink-300">Vous allez gagner:</span>
+                    <span className="text-white font-bold text-lg">⭐ +{pointsToEarn} points</span>
+                  </div>
+                </div>
+                
+                <div className="text-right mb-6">
+                  <p className="text-pink-300 text-sm mb-1">{cartItemCount} article{cartItemCount > 1 ? 's' : ''}</p>
+                  <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                    Total: {cartTotal.toFixed(2)}€
+                  </span>
+                </div>
+                
+                <div className="space-y-3">
+                  <Input 
+                    type="text" 
+                    placeholder="Adresse de livraison à Paris" 
+                    value={checkoutForm.address} 
+                    onChange={e => setCheckoutForm({...checkoutForm, address: e.target.value})} 
+                  />
+                  
+                  <select 
+                    className={S.input} 
+                    value={checkoutForm.payment} 
+                    onChange={e => setCheckoutForm({...checkoutForm, payment: e.target.value})}
+                  >
+                    <option value="">Méthode de paiement</option>
+                    <option value="paypal">PayPal</option>
+                    <option value="cash">Cash</option>
+                  </select>
+                  
+                  <Input 
+                    type="text" 
+                    placeholder="Code promo (optionnel)" 
+                    value={checkoutForm.promoCode || ''} 
+                    onChange={e => setCheckoutForm({...checkoutForm, promoCode: e.target.value})} 
+                    icon="Tag"
+                  />
+                  
+                  <Button 
+                    onClick={onCheckout} 
+                    className="w-full" 
+                    disabled={!checkoutForm.address || !checkoutForm.payment}
+                  >
+                    <Icon name="ShoppingCart" size={20} />
+                    COMMANDER ({cartTotal.toFixed(2)}€)
+                  </Button>
+                </div>
+              </div>
+            </>
+          )}
+        </Card>
+      );
+    };
+
+    // ==================== VUE COMMANDES ====================
+    const OrdersView = ({ orders }) => {
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">📦 Mes Commandes</h2>
+          
+          {orders.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="Package" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg mb-4">Aucune commande pour le moment</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.sort((a, b) => b.id - a.id).map(o => (
+                <div key={o.id} className="bg-white/5 p-5 rounded-xl border border-pink-500/30">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-white font-bold text-lg mb-2">Commande #{o.id}</p>
+                      <p className="text-pink-300 text-sm">🕐 {o.date}</p>
+                      <p className="text-pink-300 text-sm">📍 {o.address}</p>
+                      <p className="text-pink-300 text-sm">💳 {o.payment}</p>
+                    </div>
+                    
+                    <div className="text-right">
+                      {getStatusBadge(o.status)}
+                      <p className="text-white font-black text-2xl mt-2">{o.total.toFixed(2)}€</p>
+                      {o.pointsEarned && (
+                        <p className="text-pink-300 text-sm mt-1">⭐ +{o.pointsEarned} points gagnés</p>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {o.status === 'confirmed' && o.deliveryDate && (
+                    <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg mb-4">
+                      <p className="text-green-400 font-bold mb-2">📅 Livraison prévue:</p>
+                      <p className="text-green-300">🗓️ Date: {o.deliveryDate}</p>
+                      <p className="text-green-300">🕐 Heure: {o.deliveryTime}</p>
+                    </div>
+                  )}
+                  
+                  <div className="pt-3 border-t border-pink-500/30">
+                    <p className="text-pink-300 text-sm mb-2 font-semibold">Articles:</p>
+                    {o.items.map(i => (
+                      <p key={i.id} className="text-pink-300 text-sm">
+                        • {i.name} x{i.qty} - {(i.price * i.qty).toFixed(2)}€
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+// ==================== FIN PARTIE 4/6 ====================
+// COPIEZ LA PARTIE 5/6 JUSTE APRÈS CETTE LIG
+// ==================== PARTIE 5/6 : VUES PARRAINAGE, PROMO, TUTORIEL & ADMIN ====================
+
+    // ==================== VUE PARRAINAGE ====================
+    const ReferralView = ({ user, referrals }) => {
+      const [copied, setCopied] = useState(false);
       
+      const copyCode = () => {
+        navigator.clipboard.writeText(user.referralCode);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      };
+
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">🎁 Programme Parrainage</h2>
+          
+          <p className="text-pink-300 mb-6">
+            Invitez vos amis et gagnez des points !
+          </p>
+          
+          <div className="bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-2xl p-6 mb-6 border-2 border-pink-500/50">
+            <div className="text-center mb-4">
+              <div className="inline-block bg-gradient-to-r from-pink-500 to-orange-500 p-4 rounded-2xl mb-4">
+                <Icon name="Gift" size={48} className="text-white" />
+              </div>
+              <h3 className="text-white font-bold text-xl mb-2">Votre Code Parrainage</h3>
+              <div className="flex items-center justify-center gap-3">
+                <span className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                  {user.referralCode}
+                </span>
+                <button
+                  onClick={copyCode}
+                  className="bg-pink-500/20 hover:bg-pink-500/30 p-3 rounded-xl transition"
+                >
+                  <Icon name={copied ? "Check" : "Gift"} size={24} className="text-pink-400" />
+                </button>
+              </div>
+              {copied && <p className="text-green-400 text-sm mt-2">✅ Code copié !</p>}
+            </div>
+            
+            <p className="text-pink-300 text-center text-sm">
+              Partagez ce code avec vos amis lors de leur inscription
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="bg-white/5 p-6 rounded-xl border border-green-500/30">
+              <div className="flex items-center gap-3 mb-2">
+                <Icon name="Users" size={32} className="text-green-400" />
+                <div>
+                  <p className="text-green-400 text-sm">Vous recevez</p>
+                  <p className="text-white text-2xl font-black">+100 points</p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 p-6 rounded-xl border border-blue-500/30">
+              <div className="flex items-center gap-3 mb-2">
+                <Icon name="Gift" size={32} className="text-blue-400" />
+                <div>
+                  <p className="text-blue-400 text-sm">Votre filleul reçoit</p>
+                  <p className="text-white text-2xl font-black">+50 points</p>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+              <Icon name="Users" size={24} className="text-pink-400" />
+              Vos Filleuls ({referrals?.length || 0})
+            </h3>
+            
+            {(!referrals || referrals.length === 0) ? (
+              <p className="text-pink-300 text-center py-8">
+                Vous n'avez pas encore de filleuls
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {referrals.map((ref, idx) => (
+                  <div key={idx} className="flex justify-between items-center bg-white/5 p-3 rounded-lg">
+                    <span className="text-white">👤 {ref.name}</span>
+                    <span className="text-green-400 text-sm">+100 pts</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </Card>
+      );
+    };
+
+    // ==================== VUE CODES PROMO ====================
+    const PromoView = ({ promoCodes, onApplyPromo }) => {
+      const [promoInput, setPromoInput] = useState('');
+
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">🎟️ Mes Codes Promo</h2>
+          
+          <div className="mb-6">
+            <div className="flex gap-2">
+              <Input
+                type="text"
+                placeholder="Entrez un code promo"
+                value={promoInput}
+                onChange={e => setPromoInput(e.target.value.toUpperCase())}
+                icon="Tag"
+              />
+              <Button onClick={() => onApplyPromo?.(promoInput)}>
+                Vérifier
+              </Button>
+            </div>
+          </div>
+          
+          {(!promoCodes || promoCodes.length === 0) ? (
+            <div className="text-center py-12">
+              <Icon name="Tag" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg">Aucun code promo disponible</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {promoCodes.map((promo, idx) => (
+                <div key={idx} className="bg-gradient-to-r from-pink-500/20 to-orange-500/20 rounded-xl p-6 border-2 border-pink-500/50">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-pink-300 text-sm mb-1">Code</p>
+                      <p className="text-white text-2xl font-black">{promo.code}</p>
+                    </div>
+                    <div className="bg-gradient-to-r from-pink-500 to-orange-500 text-white px-4 py-2 rounded-full text-sm font-bold">
+                      -{promo.discount}{promo.type === 'percentage' ? '%' : '€'}
+                    </div>
+                  </div>
+                  <p className="text-pink-300 text-sm mb-2">{promo.description}</p>
+                  {promo.minAmount && (
+                    <p className="text-pink-400 text-xs">
+                      Minimum d'achat: {promo.minAmount}€
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+    // ==================== VUE TUTORIEL ====================
+    const TutorialView = () => {
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">📖 Tutoriel</h2>
+          
+          <div className="space-y-6">
+            <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-black text-xl">1</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">🛍️ Commander des produits</h3>
+                  <p className="text-pink-300 text-sm">
+                    Parcourez notre catalogue, ajoutez vos produits préférés au panier et validez votre commande. 
+                    Choisissez votre méthode de paiement (PayPal ou Cash).
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-black text-xl">2</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">⭐ Gagner des points</h3>
+                  <p className="text-pink-300 text-sm">
+                    Gagnez 10 points par euro dépensé. Accumulez des points pour débloquer des paliers de fidélité 
+                    (Bronze, Argent, Or, Platine) et profiter d'avantages exclusifs.
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-black text-xl">3</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">🎁 Parrainer des amis</h3>
+                  <p className="text-pink-300 text-sm">
+                    Partagez votre code de parrainage unique avec vos amis. Vous gagnez 100 points et votre filleul 
+                    reçoit 50 points de bienvenue !
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-black text-xl">4</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">❤️ Créer vos favoris</h3>
+                  <p className="text-pink-300 text-sm">
+                    Cliquez sur le cœur pour ajouter vos produits préférés à vos favoris. Retrouvez-les facilement 
+                    dans le menu "Mes Favoris".
+                  </p>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white/5 rounded-xl p-6 border border-pink-500/30">
+              <div className="flex items-start gap-4">
+                <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0">
+                  <span className="text-white font-black text-xl">5</span>
+                </div>
+                <div>
+                  <h3 className="text-white font-bold text-lg mb-2">📊 Participer au sondage</h3>
+                  <p className="text-pink-300 text-sm">
+                    Donnez votre avis en sélectionnant vos goûts préférés dans le sondage. Cela nous aide à améliorer 
+                    notre catalogue !
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      );
+    };
+
+    // ==================== VUE STATS PRODUCTEUR ====================
+    const StatsView = ({ orders, surveyResults }) => {
+      const stats = useMemo(() => {
+        const totalRevenue = orders.reduce((s, o) => s + o.total, 0);
+        const productStats = {};
+        
+        orders.forEach(o => 
+          o.items.forEach(i => {
+            if (!productStats[i.id]) productStats[i.id] = { name: i.name, qty: 0, revenue: 0 };
+            productStats[i.id].qty += i.qty;
+            productStats[i.id].revenue += i.price * i.qty;
+          })
+        );
+        
+        const topProduct = Object.values(productStats).sort((a, b) => b.qty - a.qty)[0];
+        
+        return {
+          totalRevenue,
+          totalOrders: orders.length,
+          productsSold: orders.reduce((s, o) => s + o.items.reduce((a, i) => a + i.qty, 0), 0),
+          topProduct,
+          productStats: Object.values(productStats).sort((a, b) => b.revenue - a.revenue)
+        };
+      }, [orders]);
+
+      return (
+        <div className="space-y-6">
+          <Card className="p-6">
+            <h2 className="text-3xl font-black text-white mb-6">📊 Statistiques</h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+              <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 p-6 rounded-xl border-2 border-pink-500/50">
+                <Icon name="DollarSign" size={32} className="text-pink-400 mb-2" />
+                <p className="text-pink-300 text-sm">Revenu Total</p>
+                <p className="text-white text-2xl font-black">{stats.totalRevenue.toFixed(2)}€</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 p-6 rounded-xl border-2 border-pink-500/50">
+                <Icon name="Package" size={32} className="text-pink-400 mb-2" />
+                <p className="text-pink-300 text-sm">Commandes</p>
+                <p className="text-white text-2xl font-black">{stats.totalOrders}</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 p-6 rounded-xl border-2 border-pink-500/50">
+                <Icon name="ShoppingCart" size={32} className="text-pink-400 mb-2" />
+                <p className="text-pink-300 text-sm">Produits Vendus</p>
+                <p className="text-white text-2xl font-black">{stats.productsSold}</p>
+              </div>
+              
+              <div className="bg-gradient-to-br from-pink-500/20 to-orange-500/20 p-6 rounded-xl border-2 border-pink-500/50">
+                <Icon name="TrendingUp" size={32} className="text-pink-400 mb-2" />
+                <p className="text-pink-300 text-sm">Top Produit</p>
+                <p className="text-white text-lg font-black truncate">{stats.topProduct?.name || 'N/A'}</p>
+                {stats.topProduct && (
+                  <p className="text-pink-300 text-xs">{stats.topProduct.qty} ventes</p>
+                )}
+              </div>
+            </div>
+            
+            {stats.productStats.length > 0 && (
+              <div>
+                <h3 className="text-white font-bold text-xl mb-4">Top Produits par Revenu</h3>
+                <div className="space-y-2">
+                  {stats.productStats.slice(0, 5).map((prod, idx) => (
+                    <div key={idx} className="bg-white/5 p-4 rounded-xl flex justify-between items-center">
+                      <div>
+                        <p className="text-white font-bold">{prod.name}</p>
+                        <p className="text-pink-300 text-sm">{prod.qty} unités vendues</p>
+                      </div>
+                      <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">
+                        {prod.revenue.toFixed(2)}€
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+          
+          {surveyResults && Object.keys(surveyResults).length > 0 && (
+            <Card className="p-6">
+              <h2 className="text-2xl font-black text-white mb-6">📊 Résultats du Sondage</h2>
+              <div className="space-y-3">
+                {Object.entries(surveyResults)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(([flavor, count], idx) => (
+                    <div key={idx} className="bg-white/5 p-4 rounded-xl">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-white font-bold">{flavor}</span>
+                        <span className="text-pink-400 font-bold">{count} votes</span>
+                      </div>
+                      <div className="w-full bg-white/10 rounded-full h-2 overflow-hidden">
+                        <div 
+                          className="h-full bg-gradient-to-r from-pink-500 to-orange-500"
+                          style={{ 
+                            width: `${(count / Math.max(...Object.values(surveyResults))) * 100}%` 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </Card>
+          )}
+        </div>
+      );
+    };
+
+// ==================== FIN PARTIE 5/6 ====================
+// COPIEZ LA PARTIE 6/6 (DERNIÈRE) JUSTE APRÈS CETTE LIGNE
+// ==================== PARTIE 6/6 : APP PRINCIPAL & ADMIN + FIN ====================
+
+    // ==================== VUE ADMIN PRODUITS ====================
+    const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProduct }) => {
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">📦 Gestion des Produits</h2>
+          
+          <Button onClick={onAddProduct} className="mb-6">
+            <Icon name="Upload" size={20} />
+            AJOUTER UN PRODUIT
+          </Button>
+          
+          <div className="space-y-3">
+            {products.map(p => (
+              <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-pink-500/20">
+                <div className="flex items-center gap-3">
+                  <img src={p.img} alt={p.name} className="w-16 h-16 rounded-lg object-cover" />
+                  <div>
+                    <p className="text-white font-bold">{p.name}</p>
+                    <p className="text-pink-300 text-sm">{p.price.toFixed(2)}€ - Stock: {p.stock}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onEditProduct(p)} 
+                    className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition"
+                  >
+                    <Icon name="Edit" size={20} />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteProduct(p.id)} 
+                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition"
+                  >
+                    <Icon name="Trash2" size={20} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      );
+    };
+
+    // ==================== VUE ADMIN COMMANDES ====================
+    const AdminOrdersView = ({ orders, onConfirmOrder, onDeleteOrder }) => {
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">📋 Gestion des Commandes</h2>
+          
+          {orders.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="Package" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg">Aucune commande</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {orders.sort((a, b) => b.id - a.id).map(o => (
+                <div key={o.id} className="bg-white/5 p-5 rounded-xl border border-pink-500/30">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <p className="text-white font-bold text-lg">👤 {o.user}</p>
+                        {getStatusBadge(o.status)}
+                      </div>
+                      <p className="text-pink-300 text-sm">📞 {o.phone || 'Non renseigné'}</p>
+                      <p className="text-pink-300 text-sm">📍 {o.address}</p>
+                      <p className="text-pink-300 text-sm">💳 {o.payment}</p>
+                      <p className="text-pink-300 text-sm">🕐 {o.date}</p>
+                      {o.deliveryDate && (
+                        <div className="mt-2 bg-green-500/10 border border-green-500/30 p-2 rounded inline-block">
+                          <p className="text-green-400 text-xs">📅 {o.deliveryDate} à {o.deliveryTime}</p>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="text-right">
+                      <p className="text-white font-black text-2xl mb-2">{o.total.toFixed(2)}€</p>
+                      <div className="flex gap-2 flex-col">
+                        {o.status === 'pending' && (
+                          <button 
+                            onClick={() => onConfirmOrder(o)} 
+                            className="bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs px-3 py-2 rounded-lg transition"
+                          >
+                            ✅ Confirmer
+                          </button>
+                        )}
+                        <button 
+                          onClick={() => onDeleteOrder(o.id)} 
+                          className="bg-red-500/20 hover:bg-red-500/30 text-red-400 text-xs px-3 py-2 rounded-lg transition"
+                        >
+                          🗑️ Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-pink-500/30">
+                    <p className="text-pink-300 text-sm mb-2 font-semibold">Articles:</p>
+                    {o.items.map(i => (
+                      <p key={i.id} className="text-pink-300 text-sm">
+                        • {i.name} x{i.qty} - {(i.price * i.qty).toFixed(2)}€
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+    // ==================== COMPOSANT APP PRINCIPAL ====================
+    function App() {
+      // Données initiales
+      const INITIAL_USERS = [{ 
+        name: 'Bradley', 
+        password: 'Brad@mar270508', 
+        role: 'producer', 
+        phone: '', 
+        referralCode: 'PUFFBRA123456',
+        points: 0
+      }];
+      
+      const INITIAL_PRODUCTS = [
+        { id: 1, name: 'Coque Galaxy', price: 10.00, stock: 10, img: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400', desc: 'Design Puff Jr coloré' },
+        { id: 2, name: 'Coque Neon', price: 10.00, stock: 8, img: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?w=400', desc: 'Style néon vibrant' },
+        { id: 3, name: 'Coque Cosmic', price: 10.00, stock: 15, img: 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400', desc: 'Motifs cosmiques' }
+      ];
+
+      // Fonctions de chargement/sauvegarde
+      const loadFromStorage = (key, defaultValue) => {
+        try {
+          const stored = localStorage.getItem(key);
+          return stored ? JSON.parse(stored) : defaultValue;
+        } catch {
+          return defaultValue;
+        }
+      };
+
+      const saveToStorage = (key, value) => {
+        try {
+          localStorage.setItem(key, JSON.stringify(value));
+        } catch (e) {
+          console.error('Erreur sauvegarde:', e);
+        }
+      };
+
+      // États
       const [view, setView] = useState('home');
-      const [user, setUser] = useState(loadUser);
+      const [user, setUser] = useState(loadFromStorage('puff_current_user', null));
       const [search, setSearch] = useState('');
       const [cart, setCart] = useState([]);
-      const [users, setUsers] = useState(loadUsers);
-      const [products, setProducts] = useState(loadProducts);
-      const [orders, setOrders] = useState(loadOrders);
-      const [checkoutForm, setCheckoutForm] = useState({ address: '', payment: '' });
+      const [users, setUsers] = useState(loadFromStorage('puff_users', INITIAL_USERS));
+      const [products, setProducts] = useState(loadFromStorage('puff_products', INITIAL_PRODUCTS));
+      const [orders, setOrders] = useState(loadFromStorage('puff_orders', []));
+      const [checkoutForm, setCheckoutForm] = useState({ address: '', payment: '', promoCode: '' });
       const [selectedProduct, setSelectedProduct] = useState(null);
-      const [confirmModal, setConfirmModal] = useState(null);
-      
-      useEffect(() => { saveUsers(users); }, [users]);
-      useEffect(() => {try {if (user) {localStorage.setItem('puff_current_user', JSON.stringify(user));} else {localStorage.removeItem('puff_current_user');}} catch (e) { console.error('Erreur:', e); }}, [user]);
-      useEffect(() => { try { localStorage.setItem('puff_products', JSON.stringify(products)); } catch (e) { console.error('Erreur:', e); }}, [products]);
-      useEffect(() => { try { localStorage.setItem('puff_orders', JSON.stringify(orders)); } catch (e) { console.error('Erreur:', e); }}, [orders]);
-      
-      const filteredProducts = useMemo(() => products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())), [products, search]);
+      const [showSurvey, setShowSurvey] = useState(false);
+      const [showScanner, setShowScanner] = useState(false);
+      const [favorites, setFavorites] = useState(loadFromStorage('puff_favorites_' + user?.name, []));
+      const [userFlavors, setUserFlavors] = useState(loadFromStorage('puff_user_flavors_' + user?.name, []));
+      const [allFlavors, setAllFlavors] = useState(loadFromStorage('puff_all_flavors', INITIAL_FLAVORS));
+      const [surveyResults, setSurveyResults] = useState(loadFromStorage('puff_survey_results', {}));
+
+      // Effets de sauvegarde
+      useEffect(() => { saveToStorage('puff_users', users); }, [users]);
+      useEffect(() => { saveToStorage('puff_current_user', user); }, [user]);
+      useEffect(() => { saveToStorage('puff_products', products); }, [products]);
+      useEffect(() => { saveToStorage('puff_orders', orders); }, [orders]);
+      useEffect(() => { if (user) saveToStorage('puff_favorites_' + user.name, favorites); }, [favorites, user]);
+      useEffect(() => { if (user) saveToStorage('puff_user_flavors_' + user.name, userFlavors); }, [userFlavors, user]);
+      useEffect(() => { saveToStorage('puff_all_flavors', allFlavors); }, [allFlavors]);
+      useEffect(() => { saveToStorage('puff_survey_results', surveyResults); }, [surveyResults]);
+
+      // Calculs mémorisés
       const cartTotal = useMemo(() => cart.reduce((s, i) => s + i.price * i.qty, 0), [cart]);
       const cartItemCount = useMemo(() => cart.reduce((s, i) => s + i.qty, 0), [cart]);
       const myOrders = useMemo(() => orders.filter(o => o.user === user?.name), [orders, user]);
-      const stats = useMemo(() => {const totalRevenue = orders.reduce((s, o) => s + o.total, 0), productStats = {}; orders.forEach(o => o.items.forEach(i => {if (!productStats[i.id]) productStats[i.id] = { name: i.name, qty: 0 }; productStats[i.id].qty += i.qty;})); return {totalRevenue, totalOrders: orders.length, productsSold: orders.reduce((s, o) => s + o.items.reduce((a, i) => a + i.qty, 0), 0), topProduct: Object.values(productStats).sort((a, b) => b.qty - a.qty)[0]};}, [orders]);
-      
-      const handleLogin = useCallback((form) => {const u = users.find(u => u.name === form.name && u.password === form.password); u ? setUser(u) : alert('Identifiant ou mot de passe incorrect');}, [users]);
-      
+      const myReferrals = useMemo(() => users.filter(u => u.referredBy === user?.referralCode), [users, user]);
+
+      // Handlers
+      const handleLogin = useCallback((form) => {
+        const u = users.find(u => u.name === form.name && u.password === form.password);
+        if (u) {
+          setUser(u);
+          setFavorites(loadFromStorage('puff_favorites_' + u.name, []));
+          setUserFlavors(loadFromStorage('puff_user_flavors_' + u.name, []));
+        } else {
+          alert('Identifiant ou mot de passe incorrect');
+        }
+      }, [users]);
+
       const handleRegister = useCallback((form) => {
-        if (users.find(u => u.name === form.name)) return alert('Compte existant');
-        const newUser = { name: form.name, password: form.password, phone: form.phone, role: 'client' };
+        if (users.find(u => u.name === form.name)) return alert('Ce nom d\'utilisateur existe déjà');
+        
+        const newUser = {
+          name: form.name,
+          password: form.password,
+          phone: form.phone,
+          role: 'client',
+          referralCode: generateReferralCode(form.name),
+          referredBy: form.referralCode || null,
+          points: 0
+        };
+
+        // Bonus parrainage
+        if (form.referralCode) {
+          const referrer = users.find(u => u.referralCode === form.referralCode);
+          if (referrer) {
+            newUser.points = 50; // Bonus filleul
+            setUsers(prev => prev.map(u => 
+              u.referralCode === form.referralCode 
+                ? {...u, points: (u.points || 0) + 100} 
+                : u
+            ));
+          }
+        }
+
         setUsers(prev => [...prev, newUser]);
         setUser(newUser);
-        alert(`Bienvenue ${form.name} ! 🎉`);
+        alert(`Bienvenue ${form.name} ! 🎉${newUser.points > 0 ? ` Vous avez reçu ${newUser.points} points de bienvenue !` : ''}`);
       }, [users]);
-      
+
+      const handleLogout = useCallback(() => {
+        setUser(null);
+        setCart([]);
+        setView('home');
+        setFavorites([]);
+      }, []);
+
       const addToCart = useCallback((p) => {
         if (p.stock <= 0) return alert('Produit en rupture de stock');
         setCart(prev => {
           const ex = prev.find(i => i.id === p.id);
           if (ex) {
-            if (ex.qty >= p.stock) return alert('Stock insuffisant'), prev;
+            if (ex.qty >= p.stock) {
+              alert('Stock insuffisant');
+              return prev;
+            }
             return prev.map(i => i.id === p.id ? {...i, qty: i.qty + 1} : i);
           }
           return [...prev, {...p, qty: 1}];
         });
       }, []);
-      
+
       const updateCartQty = useCallback((id, delta) => {
         setCart(prev => prev.map(i => {
           if (i.id === id) {
@@ -128,11 +1657,15 @@
           return i;
         }));
       }, [products]);
-      
+
       const handleCheckout = useCallback(() => {
-        if (!checkoutForm.address || !checkoutForm.payment) return alert('Veuillez remplir tous les champs');
-        
+        if (!checkoutForm.address || !checkoutForm.payment) {
+          return alert('Veuillez remplir tous les champs');
+        }
+
+        const pointsEarned = Math.floor(cartTotal * 10);
         const userInfo = users.find(u => u.name === user.name);
+
         const newOrder = {
           id: Date.now(),
           user: user.name,
@@ -144,464 +1677,307 @@
           date: new Date().toLocaleString('fr-FR'),
           status: 'pending',
           deliveryDate: null,
-          deliveryTime: null
+          deliveryTime: null,
+          pointsEarned
         };
-        
+
+        // Mettre à jour stock
         setProducts(prev => prev.map(p => {
           const cartItem = cart.find(c => c.id === p.id);
           return cartItem ? {...p, stock: p.stock - cartItem.qty} : p;
         }));
-        
+
+        // Ajouter points au client
+        setUsers(prev => prev.map(u => 
+          u.name === user.name 
+            ? {...u, points: (u.points || 0) + pointsEarned}
+            : u
+        ));
+
+        // Mettre à jour l'utilisateur courant
+        setUser(prev => ({...prev, points: (prev.points || 0) + pointsEarned}));
+
         setOrders(prev => [...prev, newOrder]);
         setCart([]);
-        setCheckoutForm({ address: '', payment: '' });
-        alert('Commande confirmée ! 🎉');
+        setCheckoutForm({ address: '', payment: '', promoCode: '' });
+        alert(`Commande confirmée ! 🎉\nVous avez gagné ${pointsEarned} points !`);
         setView('orders');
       }, [checkoutForm, cart, cartTotal, user, users]);
-      
+
       const confirmOrder = useCallback((order) => {
         const deliveryDate = prompt('Date de livraison (ex: 15/12/2024):');
         if (!deliveryDate) return;
-        
+
         const deliveryTime = prompt('Heure de livraison (ex: 14h30):');
         if (!deliveryTime) return;
-        
-        setOrders(prev => prev.map(o => 
-          o.id === order.id 
+
+        setOrders(prev => prev.map(o =>
+          o.id === order.id
             ? {...o, status: 'confirmed', deliveryDate, deliveryTime}
             : o
         ));
-        
+
         alert('Commande confirmée avec succès !');
       }, []);
-      
+
+      const handleScannerValidate = useCallback((orderCode) => {
+        const orderIdMatch = orderCode.match(/\d+/);
+        if (!orderIdMatch) {
+          alert('Code invalide');
+          return;
+        }
+
+        const orderId = parseInt(orderIdMatch[0]);
+        const order = orders.find(o => o.id === orderId);
+
+        if (!order) {
+          alert('Commande introuvable');
+          return;
+        }
+
+        setOrders(prev => prev.map(o =>
+          o.id === orderId ? {...o, status: 'delivered'} : o
+        ));
+
+        alert('✅ Commande marquée comme livrée !');
+      }, [orders]);
+
+      const toggleFavorite = useCallback((productId) => {
+        setFavorites(prev =>
+          prev.includes(productId)
+            ? prev.filter(id => id !== productId)
+            : [...prev, productId]
+        );
+      }, []);
+
+      const handleSurveySubmit = useCallback((selectedFlavors) => {
+        setUserFlavors(selectedFlavors);
+
+        // Ajouter nouveaux goûts à la liste globale
+        const newFlavors = selectedFlavors.filter(f => !allFlavors.includes(f));
+        if (newFlavors.length > 0) {
+          setAllFlavors(prev => [...prev, ...newFlavors]);
+        }
+
+        // Mettre à jour résultats sondage
+        setSurveyResults(prev => {
+          const updated = {...prev};
+          selectedFlavors.forEach(flavor => {
+            updated[flavor] = (updated[flavor] || 0) + 1;
+          });
+          return updated;
+        });
+
+        alert('Merci pour votre participation ! 🎉');
+      }, [allFlavors]);
+
       const addProduct = useCallback(() => {
         const input = document.createElement('input');
         input.type = 'file';
         input.accept = 'image/*';
-        input.style.display = 'none';
-        document.body.appendChild(input);
-        
         input.onchange = (e) => {
           const f = e.target.files?.[0];
-          if (!f || !f.type.startsWith('image/')) {
-            document.body.removeChild(input);
-            return alert('Image requise');
-          }
-          
+          if (!f) return;
+
           const name = prompt('Nom du produit');
-          if (!name) {
-            document.body.removeChild(input);
-            return;
-          }
-          
-          const price = parseFloat(prompt('Prix (€)'));
-          if (!price || isNaN(price)) {
-            document.body.removeChild(input);
-            return alert('Prix invalide');
-          }
-          
+          if (!name) return;
+
+          const price = parseFloat(prompt('Prix (€)', '10.00'));
+          if (!price || isNaN(price)) return alert('Prix invalide');
+
           const stock = parseInt(prompt('Quantité en stock'));
-          if (!stock || isNaN(stock) || stock < 0) {
-            document.body.removeChild(input);
-            return alert('Quantité invalide');
-          }
-          
+          if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
+
           const desc = prompt('Description');
-          if (!desc) {
-            document.body.removeChild(input);
-            return;
-          }
-          
+          if (!desc) return;
+
           const r = new FileReader();
           r.onload = (ev) => {
-            setProducts(prev => [...prev, { id: Date.now(), name, price, stock, img: ev.target.result, desc }]);
+            setProducts(prev => [...prev, {
+              id: Date.now(),
+              name,
+              price,
+              stock,
+              img: ev.target.result,
+              desc
+            }]);
             alert('Produit ajouté !');
-            document.body.removeChild(input);
           };
           r.readAsDataURL(f);
         };
-        
         input.click();
       }, []);
-      
+
       const editProduct = useCallback((p) => {
-        if (!window.confirm('Voulez-vous modifier ce produit ?')) return;
-        
-        const changeImage = window.confirm('Changer image ?');
-        
-        if (changeImage) {
-          const input = document.createElement('input');
-          input.type = 'file';
-          input.accept = 'image/*';
-          input.style.display = 'none';
-          document.body.appendChild(input);
-          
-          input.onchange = (e) => {
-            const f = e.target.files?.[0];
-            if (!f || !f.type.startsWith('image/')) {
-              document.body.removeChild(input);
-              return alert('Image requise');
-            }
-            
-            const name = prompt('Nouveau nom', p.name);
-            if (!name) {
-              document.body.removeChild(input);
-              return;
-            }
-            
-            const price = parseFloat(prompt('Nouveau prix', p.price));
-            if (!price || isNaN(price)) {
-              document.body.removeChild(input);
-              return alert('Prix invalide');
-            }
-            
-            const stock = parseInt(prompt('Nouveau stock', p.stock));
-            if (isNaN(stock) || stock < 0) {
-              document.body.removeChild(input);
-              return alert('Stock invalide');
-            }
-            
-            const desc = prompt('Description', p.desc);
-            if (!desc) {
-              document.body.removeChild(input);
-              return;
-            }
-            
-            const r = new FileReader();
-            r.onload = (ev) => {
-              setProducts(prev => prev.map(pr => pr.id === p.id ? {...pr, name, price, stock, desc, img: ev.target.result} : pr));
-              alert('Modifié !');
-              document.body.removeChild(input);
-            };
-            r.readAsDataURL(f);
-          };
-          input.click();
-        } else {
-          const name = prompt('Nouveau nom', p.name);
-          if (!name) return;
-          
-          const price = parseFloat(prompt('Nouveau prix', p.price));
-          if (!price || isNaN(price)) return alert('Prix invalide');
-          
-          const stock = parseInt(prompt('Nouveau stock', p.stock));
-          if (isNaN(stock) || stock < 0) return alert('Stock invalide');
-          
-          const desc = prompt('Description', p.desc);
-          if (!desc) return;
-          
-          setProducts(prev => prev.map(pr => pr.id === p.id ? {...pr, name, price, stock, desc} : pr));
-          alert('Modifié !');
+        const name = prompt('Nouveau nom', p.name);
+        if (!name) return;
+
+        const price = parseFloat(prompt('Nouveau prix', p.price));
+        if (!price || isNaN(price)) return alert('Prix invalide');
+
+        const stock = parseInt(prompt('Nouveau stock', p.stock));
+        if (isNaN(stock) || stock < 0) return alert('Stock invalide');
+
+        const desc = prompt('Description', p.desc);
+        if (!desc) return;
+
+        setProducts(prev => prev.map(pr =>
+          pr.id === p.id ? {...pr, name, price, stock, desc} : pr
+        ));
+        alert('Produit modifié !');
+      }, []);
+
+      const deleteProduct = useCallback((id) => {
+        if (window.confirm('Supprimer ce produit ?')) {
+          setProducts(prev => prev.filter(p => p.id !== id));
+          alert('Produit supprimé !');
         }
       }, []);
-      
-      const deleteProduct = useCallback((id) => {if (window.confirm('Supprimer ?')) {setProducts(prev => prev.filter(p => p.id !== id)); alert('Supprimé !');}}, []);
-      const deleteOrder = useCallback((id) => {if (window.confirm('Supprimer commande ?')) {setOrders(prev => prev.filter(o => o.id !== id)); alert('Supprimé !');}}, []);
-      
+
+      const deleteOrder = useCallback((id) => {
+        if (window.confirm('Supprimer cette commande ?')) {
+          setOrders(prev => prev.filter(o => o.id !== id));
+          alert('Commande supprimée !');
+        }
+      }, []);
+
+      // Rendu
       if (!user) return <LoginView onLogin={handleLogin} onRegister={handleRegister} />;
-      
-      const getStatusBadge = (status) => {
-        const badges = {
-          pending: <span className="bg-orange-500/20 text-orange-400 px-3 py-1 rounded-full text-xs font-bold">⏳ En attente</span>,
-          confirmed: <span className="bg-green-500/20 text-green-400 px-3 py-1 rounded-full text-xs font-bold">✅ Confirmée</span>,
-          delivered: <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold">📦 Livrée</span>
-        };
-        return badges[status] || badges.pending;
-      };
-      
+
       return (
         <div className="min-h-screen bg-gradient-to-br from-purple-900 via-pink-800 to-orange-700">
-          <nav className="bg-black/40 backdrop-blur-xl border-b-2 border-pink-500/50 sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-              <h1 className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 cursor-pointer" onClick={() => setView('home')}>PUFF JR</h1>
-              <div className="flex items-center gap-3">
-                <span className="text-pink-300 text-sm hidden md:inline">👋 {user.name}</span>
-                {user.role === 'producer' && (
-                  <>
-                    <button onClick={() => setView('stats')} className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"><Icon name="BarChart3" size={18} /></button>
-                    <button onClick={() => setView('admin')} className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"><Icon name="Package" size={18} /></button>
-                  </>
-                )}
-                {user.role === 'client' && (
-                  <>
-                    <button onClick={() => setView('orders')} className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"><Icon name="List" size={18} /></button>
-                    <button onClick={() => setView('cart')} className="relative bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition">
-                      <Icon name="ShoppingCart" size={18} />
-                      {cartItemCount > 0 && <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-5 h-5 rounded-full flex items-center justify-center font-bold">{cartItemCount}</span>}
-                    </button>
-                  </>
-                )}
-                <button onClick={() => { setUser(null); setCart([]); setView('home'); }} className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"><Icon name="LogOut" size={18} /></button>
-              </div>
-            </div>
-          </nav>
-          
+          <Navigation
+            user={user}
+            cartCount={cartItemCount}
+            onNavigate={setView}
+            onLogout={handleLogout}
+            points={user.points || 0}
+          />
+
           <div className="max-w-7xl mx-auto p-6">
+            {user.role === 'client' && view === 'home' && (
+              <LoyaltyDisplay points={user.points || 0} />
+            )}
+
             {view === 'home' && (
-              <>
-                <div className="mb-6"><Input type="text" placeholder="Rechercher..." value={search} onChange={e => setSearch(e.target.value)} icon="Search" /></div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredProducts.map(p => (
-                    <Card key={p.id} hover>
-                      <div className="relative group">
-                        <img src={p.img} alt={p.name} className="w-full h-64 object-cover" />
-                        {p.stock <= 0 && <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">RUPTURE DE STOCK</div>}
-                        {p.stock > 0 && p.stock <= 5 && <div className="absolute top-4 left-4 bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">Stock limité: {p.stock}</div>}
-                        <button onClick={() => setSelectedProduct(p)} className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center">
-                          <div className="bg-white/20 backdrop-blur-sm p-3 rounded-full"><Icon name="Eye" size={24} className="text-white" /></div>
-                        </button>
-                      </div>
-                      <div className="p-4">
-                        <h3 className="text-xl font-bold text-white mb-2">{p.name}</h3>
-                        <p className="text-pink-300 text-sm mb-3 line-clamp-2">{p.desc}</p>
-                        <div className="flex justify-between items-center">
-                          <div>
-                            <span className="text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">{p.price.toFixed(2)}€</span>
-                            <p className="text-pink-300 text-xs mt-1">Stock: {p.stock}</p>
-                          </div>
-                          {user.role === 'client' && <Button onClick={() => addToCart(p)} className="text-sm px-3 py-2" disabled={p.stock <= 0}>AJOUTER</Button>}
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-                {filteredProducts.length === 0 && (
-                  <div className="text-center py-12">
-                    <p className="text-pink-300 text-lg mb-4">Aucun produit trouvé</p>
-                    {search && <Button onClick={() => setSearch('')}>Réinitialiser</Button>}
-                  </div>
-                )}
-              </>
+              <HomeView
+                products={products}
+                search={search}
+                setSearch={setSearch}
+                onAddToCart={addToCart}
+                onProductClick={setSelectedProduct}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+                onOpenSurvey={() => setShowSurvey(true)}
+                userRole={user.role}
+                userFlavors={userFlavors}
+              />
             )}
-            
+
+            {view === 'favorites' && user.role === 'client' && (
+              <FavoritesView
+                products={products}
+                favorites={favorites}
+                onProductClick={setSelectedProduct}
+                onAddToCart={addToCart}
+                onToggleFavorite={toggleFavorite}
+              />
+            )}
+
+            {view === 'cart' && user.role === 'client' && (
+              <CartView
+                cart={cart}
+                onUpdateQty={updateCartQty}
+                onRemoveItem={(id) => setCart(prev => prev.filter(x => x.id !== id))}
+                onCheckout={handleCheckout}
+                checkoutForm={checkoutForm}
+                setCheckoutForm={setCheckoutForm}
+              />
+            )}
+
             {view === 'orders' && user.role === 'client' && (
-              <Card className="p-6">
-                <h2 className="text-3xl font-black text-white mb-6">Mes Commandes</h2>
-                {myOrders.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Icon name="Package" size={48} className="mx-auto text-pink-400/30 mb-4" />
-                    <p className="text-pink-300 mb-4">Aucune commande</p>
-                    <Button onClick={() => setView('home')}>Continuer</Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {myOrders.sort((a, b) => b.id - a.id).map(o => (
-                      <div key={o.id} className="bg-white/5 p-5 rounded-xl border border-pink-500/30">
-                        <div className="flex justify-between items-start mb-4">
-                          <div>
-                            <p className="text-white font-bold text-lg mb-2">Commande #{o.id}</p>
-                            <p className="text-pink-300 text-sm">🕐 {o.date}</p>
-                            <p className="text-pink-300 text-sm">📍 {o.address}</p>
-                            <p className="text-pink-300 text-sm">💳 {o.payment}</p>
-                          </div>
-                          <div className="text-right">
-                            {getStatusBadge(o.status)}
-                            <p className="text-white font-black text-2xl mt-2">{o.total.toFixed(2)}€</p>
-                          </div>
-                        </div>
-                        
-                        {o.status === 'confirmed' && o.deliveryDate && (
-                          <div className="bg-green-500/10 border border-green-500/30 p-4 rounded-lg mb-4">
-                            <p className="text-green-400 font-bold mb-2">📅 Livraison prévue:</p>
-                            <p className="text-green-300">🗓️ Date: {o.deliveryDate}</p>
-                            <p className="text-green-300">🕐 Heure: {o.deliveryTime}</p>
-                          </div>
-                        )}
-                        
-                        <div className="pt-3 border-t border-pink-500/30">
-                          <p className="text-pink-300 text-sm mb-2 font-semibold">Articles:</p>
-                          {o.items.map(i => (
-                            <p key={i.id} className="text-pink-300 text-sm">• {i.name} x{i.qty} - {(i.price * i.qty).toFixed(2)}€</p>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
+              <OrdersView orders={myOrders} />
             )}
-            
-            {view === 'cart' && (
-              <Card className="p-6">
-                <h2 className="text-3xl font-black text-white mb-6">Mon Panier</h2>
-                {cart.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Icon name="ShoppingCart" size={48} className="mx-auto text-pink-400/30 mb-4" />
-                    <p className="text-pink-300 mb-4">Votre panier est vide</p>
-                    <Button onClick={() => setView('home')}>Continuer</Button>
-                  </div>
-                ) : (
-                  <>
-                    {cart.map(i => (
-                      <div key={i.id} className="flex justify-between items-center bg-white/5 p-4 rounded-xl mb-3">
-                        <div className="flex items-center gap-3">
-                          <img src={i.img} alt={i.name} className="w-16 h-16 rounded-lg object-cover" />
-                          <div>
-                            <p className="text-white font-bold">{i.name}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <button onClick={() => updateCartQty(i.id, -1)} disabled={i.qty <= 1} className="bg-pink-500/20 p-1 rounded hover:bg-pink-500/30 disabled:opacity-50">
-                                <Icon name="Minus" size={16} className="text-pink-400" />
-                              </button>
-                              <span className="text-pink-300 w-8 text-center">{i.qty}</span>
-                              <button onClick={() => updateCartQty(i.id, 1)} className="bg-pink-500/20 p-1 rounded hover:bg-pink-500/30">
-                                <Icon name="Plus" size={16} className="text-pink-400" />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-white font-bold">{(i.price * i.qty).toFixed(2)}€</span>
-                          <button onClick={() => setCart(prev => prev.filter(x => x.id !== i.id))} className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg">
-                            <Icon name="Trash2" size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="border-t-2 border-pink-500/50 mt-6 pt-6">
-                      <div className="text-right mb-6">
-                        <p className="text-pink-300 text-sm mb-1">{cartItemCount} article{cartItemCount > 1 ? 's' : ''}</p>
-                        <span className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400">Total: {cartTotal.toFixed(2)}€</span>
-                      </div>
-                      <div className="space-y-3">
-                        <Input type="text" placeholder="Adresse de livraison à Paris" value={checkoutForm.address} onChange={e => setCheckoutForm({...checkoutForm, address: e.target.value})} />
-                        <select className={S.input} value={checkoutForm.payment} onChange={e => setCheckoutForm({...checkoutForm, payment: e.target.value})}>
-                          <option value="">Méthode de paiement</option>
-                          <option value="paypal">PayPal</option>
-                          <option value="cash">Cash</option>
-                        </select>
-                        <Button onClick={handleCheckout} className="w-full" disabled={!checkoutForm.address || !checkoutForm.payment}>
-                          COMMANDER
-                        </Button>
-                      </div>
-                    </div>
-                  </>
-                )}
-              </Card>
+
+            {view === 'referral' && user.role === 'client' && (
+              <ReferralView user={user} referrals={myReferrals} />
             )}
-            
+
+            {view === 'promo' && user.role === 'client' && (
+              <PromoView promoCodes={[]} />
+            )}
+
+            {view === 'tutorial' && user.role === 'client' && (
+              <TutorialView />
+            )}
+
             {view === 'stats' && user.role === 'producer' && (
-              <Card className="p-6">
-                <h2 className="text-3xl font-black text-white mb-6">📊 Statistiques</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-white/5 p-6 rounded-xl border border-pink-500/30">
-                    <Icon name="DollarSign" size={32} className="text-pink-400 mb-2" />
-                    <p className="text-pink-300 text-sm">Revenu</p>
-                    <p className="text-white text-2xl font-black">{stats.totalRevenue.toFixed(2)}€</p>
-                  </div>
-                  <div className="bg-white/5 p-6 rounded-xl border border-pink-500/30">
-                    <Icon name="Package" size={32} className="text-pink-400 mb-2" />
-                    <p className="text-pink-300 text-sm">Commandes</p>
-                    <p className="text-white text-2xl font-black">{stats.totalOrders}</p>
-                  </div>
-                  <div className="bg-white/5 p-6 rounded-xl border border-pink-500/30">
-                    <Icon name="ShoppingCart" size={32} className="text-pink-400 mb-2" />
-                    <p className="text-pink-300 text-sm">Vendus</p>
-                    <p className="text-white text-2xl font-black">{stats.productsSold}</p>
-                  </div>
-                  <div className="bg-white/5 p-6 rounded-xl border border-pink-500/30">
-                    <Icon name="TrendingUp" size={32} className="text-pink-400 mb-2" />
-                    <p className="text-pink-300 text-sm">Top</p>
-                    <p className="text-white text-2xl font-black">{stats.topProduct?.name || 'N/A'}</p>
-                    {stats.topProduct && <p className="text-pink-300 text-xs">{stats.topProduct.qty} ventes</p>}
-                  </div>
-                </div>
-              </Card>
+              <StatsView orders={orders} surveyResults={surveyResults} />
             )}
-            
+
             {view === 'admin' && user.role === 'producer' && (
               <div className="space-y-6">
-                <Card className="p-6">
-                  <h2 className="text-3xl font-black text-white mb-6">Produits</h2>
-                  <Button onClick={addProduct} className="mb-4">
-                    <Icon name="Upload" size={20} />
-                    AJOUTER PRODUIT
-                  </Button>
-                  <div className="space-y-3">
-                    {products.map(p => (
-                      <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center">
-                        <div className="flex items-center gap-3">
-                          <img src={p.img} alt={p.name} className="w-16 h-16 rounded-lg object-cover" />
-                          <div>
-                            <p className="text-white font-bold">{p.name}</p>
-                            <p className="text-pink-300 text-sm">{p.price.toFixed(2)}€ - Stock: {p.stock}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <button onClick={() => editProduct(p)} className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg">
-                            <Icon name="Edit" size={20} />
-                          </button>
-                          <button onClick={() => deleteProduct(p.id)} className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg">
-                            <Icon name="Trash2" size={20} />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-                
-                <Card className="p-6">
-                  <h2 className="text-3xl font-black text-white mb-6">Commandes</h2>
-                  {orders.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Icon name="Package" size={48} className="mx-auto text-pink-400/30 mb-3" />
-                      <p className="text-pink-300">Aucune commande</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      {orders.sort((a, b) => b.id - a.id).map(o => (
-                        <div key={o.id} className="bg-white/5 p-4 rounded-xl">
-                          <div className="flex justify-between mb-3">
-                            <div>
-                              <div className="flex items-center gap-2 mb-2">
-                                <p className="text-white font-bold">👤 {o.user}</p>
-                                {getStatusBadge(o.status)}
-                              </div>
-                              <p className="text-pink-300 text-sm">📞 {o.phone || 'Non renseigné'}</p>
-                              <p className="text-pink-300 text-sm">📍 {o.address}</p>
-                              <p className="text-pink-300 text-sm">💳 {o.payment}</p>
-                              {o.deliveryDate && (
-                                <div className="mt-2 bg-green-500/10 border border-green-500/30 p-2 rounded">
-                                  <p className="text-green-400 text-xs">📅 {o.deliveryDate} à {o.deliveryTime}</p>
-                                </div>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="text-white font-black text-2xl">{o.total.toFixed(2)}€</p>
-                              <p className="text-pink-300 text-sm">🕐 {o.date}</p>
-                              <div className="flex gap-2 mt-2">
-                                {o.status === 'pending' && (
-                                  <button onClick={() => confirmOrder(o)} className="bg-green-500/20 hover:bg-green-500/30 text-green-400 text-xs px-3 py-1 rounded-lg">
-                                    Confirmer
-                                  </button>
-                                )}
-                                <button onClick={() => deleteOrder(o.id)} className="text-red-400 hover:text-red-300 text-xs">
-                                  Supprimer
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="pt-3 border-t border-pink-500/30">
-                            <p className="text-pink-300 text-sm mb-2 font-semibold">Articles:</p>
-                            {o.items.map(i => (
-                              <p key={i.id} className="text-pink-300 text-sm">• {i.name} x{i.qty} - {(i.price * i.qty).toFixed(2)}€</p>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </Card>
+                <AdminProductsView
+                  products={products}
+                  onAddProduct={addProduct}
+                  onEditProduct={editProduct}
+                  onDeleteProduct={deleteProduct}
+                />
+                <AdminOrdersView
+                  orders={orders}
+                  onConfirmOrder={confirmOrder}
+                  onDeleteOrder={deleteOrder}
+                />
               </div>
             )}
+
+            {view === 'scanner' && user.role === 'producer' && (
+              <Card className="p-12 text-center">
+                <Icon name="Camera" size={64} className="mx-auto text-pink-400 mb-4" />
+                <h2 className="text-2xl font-black text-white mb-4">Scanner QR Code</h2>
+                <Button onClick={() => setShowScanner(true)}>
+                  <Icon name="Camera" size={20} />
+                  OUVRIR LE SCANNER
+                </Button>
+              </Card>
+            )}
           </div>
-          
-          <Modal product={selectedProduct} onClose={() => setSelectedProduct(null)} />
+
+          {selectedProduct && (
+            <Modal
+              product={selectedProduct}
+              onClose={() => setSelectedProduct(null)}
+              onAddToCart={user.role === 'client' ? addToCart : null}
+              isFavorite={favorites.includes(selectedProduct.id)}
+              onToggleFavorite={user.role === 'client' ? toggleFavorite : null}
+            />
+          )}
+
+          {showSurvey && (
+            <SurveyModal
+              onClose={() => setShowSurvey(false)}
+              flavors={allFlavors}
+              onSubmit={handleSurveySubmit}
+              userFlavors={userFlavors}
+            />
+          )}
+
+          {showScanner && (
+            <QRScannerModal
+              onClose={() => setShowScanner(false)}
+              onValidate={handleScannerValidate}
+            />
+          )}
         </div>
       );
     }
-    
+
+    // ==================== RENDU FINAL ====================
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
 </body>
 </html>
-    
+
+// ==================== FIN COMPLÈTE DU CODE ====================
+// Votre application P-Shop est maintenant complète !
+// Copiez les 6 parties dans l'ordre pour avoir le code complet.
