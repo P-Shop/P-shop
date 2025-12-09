@@ -1,6 +1,19 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
+ <style>
+  @keyframes slide-in-right {
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  }
+  .animate-slide-in-right {
+    animation: slide-in-right 0.3s ease-out;
+  }
+</style>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P-Shop</title>
@@ -38,7 +51,7 @@
     const { useState, useMemo, useCallback, useEffect } = React;
     
 
-    // ==================== PARTIE 1/6 : CONFIGURATION & HELPERS ===================
+    // ==================== PARTIE 1/6 : CONFIGURATION & HELPERS (CORRIGÉE) ===================
   
     const INITIAL_FLAVORS = [
       'Sakura Grape 16k', 'Blue Razz Ice 16k', 'Cherry Berry 16k',
@@ -46,11 +59,10 @@
       'Coca', 'Grape Ice 18k', 'Mango Ice', 'Strawberry Kiwi'
     ];
 
+    // NOUVEAUX PALIERS : seulement Platine et Premium
     const LOYALTY_TIERS = [
-      { name: 'Bronze', minPoints: 0, color: 'from-orange-700 to-orange-500' },
-      { name: 'Argent', minPoints: 500, color: 'from-gray-400 to-gray-300' },
-      { name: 'Or', minPoints: 1000, color: 'from-yellow-500 to-yellow-300' },
-      { name: 'Platine', minPoints: 1800, color: 'from-purple-500 to-pink-400' }
+      { name: 'Platine', minPoints: 0, color: 'from-purple-500 to-pink-400' },
+      { name: 'Premium', minPoints: 1500, color: 'from-yellow-500 via-orange-500 to-red-500' }
     ];
 
     const S = {
@@ -64,28 +76,20 @@
     // ==================== HELPERS FIREBASE ====================
     const saveToFirestore = async (collection, data) => {
       try {
-        // Sauvegarde spéciale pour les produits (un doc par produit)
         if (collection === 'pshop_products') {
           const batch = db.batch();
-          
-          // Supprimer tous les anciens produits
           const snapshot = await db.collection(collection).get();
           snapshot.docs.forEach(doc => {
             batch.delete(doc.ref);
           });
-          
-          // Ajouter les nouveaux produits
           data.forEach(product => {
             const docRef = db.collection(collection).doc(String(product.id));
             batch.set(docRef, product);
           });
-          
           await batch.commit();
           console.log(`✅ Sauvegarde ${collection} réussie (${data.length} produits)`);
           return;
         }
-        
-        // Sauvegarde normale pour les autres collections
         await db.collection(collection).doc('data').set({ value: data });
         console.log(`✅ Sauvegarde ${collection} réussie`);
       } catch (error) {
@@ -96,7 +100,6 @@
 
     const loadFromFirestore = async (collection, defaultValue) => {
       try {
-        // Chargement spécial pour les produits
         if (collection === 'pshop_products') {
           const snapshot = await db.collection(collection).get();
           if (!snapshot.empty) {
@@ -107,8 +110,6 @@
           console.log(`⚠️ ${collection} vide, utilisation valeur par défaut`);
           return defaultValue;
         }
-        
-        // Chargement normal pour les autres collections
         const doc = await db.collection(collection).doc('data').get();
         if (doc.exists) {
           console.log(`✅ Chargement ${collection} réussi`);
@@ -150,7 +151,9 @@
         Users: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>,
         Camera: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>,
         Check: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="20 6 9 17 4 12"/></svg>,
-        Star: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        Star: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+        ChevronRight: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="9 18 15 12 9 6"/></svg>,
+        ChevronLeft: <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polyline points="15 18 9 12 15 6"/></svg>
       };
       return icons[name] || null;
     };
@@ -176,9 +179,9 @@
     );
 
 
-// ==================== FIN PARTIE 1/6 ====================
+// ==================== FIN PARTIE 1/6 CORRIGÉE ====================
 // COPIEZ LA PARTIE 2/6 JUSTE APRÈS CETTE LIGNE
-// ==================== PARTIE 2/6 : MODALS & UTILITAIRES ====================
+// ==================== PARTIE 2/6 : MODALS & UTILITAIRES (CORRIGÉE) ====================
 
     // Fonction pour générer un code de parrainage unique
     const generateReferralCode = (name) => {
@@ -203,6 +206,106 @@
         delivered: <span className="bg-blue-500/20 text-blue-400 px-3 py-1 rounded-full text-xs font-bold">📦 Livrée</span>
       };
       return badges[status] || badges.pending;
+    };
+
+    // ==================== MODAL TUTORIEL (NOUVEAU) ====================
+    const TutorialModal = ({ onClose }) => {
+      const [step, setStep] = useState(0);
+
+      const tutorialSteps = [
+        {
+          icon: 'ShoppingCart',
+          title: '🛍️ Commander des produits',
+          description: 'Parcourez notre catalogue, ajoutez vos produits préférés au panier et validez votre commande. Choisissez votre méthode de paiement (PayPal ou Cash).'
+        },
+        {
+          icon: 'Star',
+          title: '⭐ Gagner des points',
+          description: 'Gagnez 10 points par euro dépensé. Accumulez des points pour débloquer le niveau Premium (1500 pts) et profiter d\'avantages exclusifs comme 2 puffs pour 15€ !'
+        },
+        {
+          icon: 'Gift',
+          title: '🎁 Parrainer des amis',
+          description: 'Partagez votre code de parrainage unique avec vos amis. Vous gagnez 100 points et votre filleul reçoit 50 points de bienvenue !'
+        },
+        {
+          icon: 'Heart',
+          title: '❤️ Créer vos favoris',
+          description: 'Cliquez sur le cœur pour ajouter vos produits préférés à vos favoris. Retrouvez-les facilement dans le menu "Mes Favoris".'
+        },
+        {
+          icon: 'List',
+          title: '📊 Participer au sondage',
+          description: 'Donnez votre avis en sélectionnant vos goûts préférés dans le sondage. Cela nous aide à améliorer notre catalogue !'
+        }
+      ];
+
+      const currentStep = tutorialSteps[step];
+      const isLastStep = step === tutorialSteps.length - 1;
+
+      return (
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className={`${S.card} max-w-2xl w-full`}>
+            <div className="p-8">
+              <div className="text-center mb-8">
+                <div className="inline-block bg-gradient-to-r from-pink-500 to-orange-500 p-6 rounded-3xl mb-6">
+                  <Icon name={currentStep.icon} size={64} className="text-white" />
+                </div>
+                <h2 className="text-3xl font-black text-white mb-4">{currentStep.title}</h2>
+                <p className="text-pink-300 text-lg leading-relaxed">{currentStep.description}</p>
+              </div>
+
+              {/* Indicateurs de progression */}
+              <div className="flex justify-center gap-2 mb-8">
+                {tutorialSteps.map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-2 rounded-full transition-all ${
+                      idx === step
+                        ? 'w-8 bg-gradient-to-r from-pink-500 to-orange-500'
+                        : 'w-2 bg-white/20'
+                    }`}
+                  />
+                ))}
+              </div>
+
+              {/* Boutons de navigation */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={onClose}
+                  variant="secondary"
+                  className="flex-1"
+                >
+                  Passer
+                </Button>
+                
+                {!isLastStep ? (
+                  <Button
+                    onClick={() => setStep(step + 1)}
+                    className="flex-1"
+                  >
+                    Suivant
+                    <Icon name="ChevronRight" size={20} />
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={onClose}
+                    className="flex-1"
+                  >
+                    <Icon name="Check" size={20} />
+                    Commencer !
+                  </Button>
+                )}
+              </div>
+
+              {/* Compteur d'étapes */}
+              <p className="text-center text-pink-300 text-sm mt-4">
+                Étape {step + 1} sur {tutorialSteps.length}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
     };
 
     // ==================== MODAL DÉTAILS PRODUIT ====================
@@ -368,7 +471,6 @@
       const videoRef = React.useRef(null);
       const [stream, setStream] = React.useState(null);
 
-      // Activer la caméra
       const startCamera = async () => {
         try {
           const mediaStream = await navigator.mediaDevices.getUserMedia({ 
@@ -385,7 +487,6 @@
         }
       };
 
-      // Arrêter la caméra
       const stopCamera = () => {
         if (stream) {
           stream.getTracks().forEach(track => track.stop());
@@ -394,7 +495,6 @@
         setScanning(false);
       };
 
-      // Nettoyer au démontage
       React.useEffect(() => {
         return () => {
           if (stream) {
@@ -469,7 +569,7 @@
       );
     };
 
-    // ==================== MODAL MENU MOBILE ====================
+    // ==================== MODAL MENU MOBILE (CORRIGÉ - À DROITE) ====================
     const MobileMenu = ({ user, onNavigate, onLogout, onClose }) => {
       const menuItems = user.role === 'client' ? [
         { icon: 'Home', label: 'Accueil', view: 'home' },
@@ -483,12 +583,17 @@
         { icon: 'Home', label: 'Accueil', view: 'home' },
         { icon: 'BarChart3', label: 'Statistiques', view: 'stats' },
         { icon: 'Package', label: 'Gestion Produits', view: 'admin' },
+        { icon: 'Users', label: 'Gestion Comptes', view: 'accounts' },
         { icon: 'Camera', label: 'Scanner QR', view: 'scanner' }
       ];
 
       return (
-        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50" onClick={onClose}>
-          <div className="bg-gradient-to-br from-purple-900/95 via-pink-800/95 to-orange-700/95 w-80 h-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex" onClick={onClose}>
+          {/* Espace vide à gauche pour fermer */}
+          <div className="flex-1" onClick={onClose} />
+          
+          {/* Menu à DROITE */}
+          <div className="bg-gradient-to-br from-purple-900/95 via-pink-800/95 to-orange-700/95 w-80 h-full p-6 shadow-2xl animate-slide-in-right" onClick={e => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-8">
               <h2 className="text-2xl font-black text-white">Menu</h2>
               <button onClick={onClose} className="text-pink-400 hover:text-pink-300">
@@ -530,9 +635,9 @@
       );
     };
 
-// ==================== FIN PARTIE 2/6 ====================
+// ==================== FIN PARTIE 2/6 CORRIGÉE ====================
 // COPIEZ LA PARTIE 3/6 JUSTE APRÈS CETTE LIGNE
-// ==================== PARTIE 3/6 : VUE LOGIN & NAVIGATION ====================
+// ==================== PARTIE 3/6 : VUE LOGIN & NAVIGATION (CORRIGÉE) ====================
 
     // ==================== VUE LOGIN/INSCRIPTION ====================
     const LoginView = ({ onLogin, onRegister }) => {
@@ -656,7 +761,7 @@
                   className="w-4 h-4 accent-pink-500 cursor-pointer"
                 />
                 <label htmlFor="rememberMe" className="text-pink-300 text-sm cursor-pointer">
-                  Rester connecté
+                  Rester connecté sur cet appareil
                 </label>
               </div>
             </div>
@@ -745,6 +850,12 @@
                       >
                         <Icon name="Package" size={18} />
                       </button>
+                      <button 
+                        onClick={() => onNavigate('accounts')} 
+                        className="bg-pink-500/20 hover:bg-pink-500/30 text-pink-400 p-2 rounded-lg transition"
+                      >
+                        <Icon name="Users" size={18} />
+                      </button>
                     </>
                   )}
                   
@@ -792,13 +903,16 @@
       );
     };
 
-    // ==================== AFFICHAGE PALIER FIDÉLITÉ ====================
+    // ==================== AFFICHAGE PALIER FIDÉLITÉ (CORRIGÉ) ====================
     const LoyaltyDisplay = ({ points }) => {
       const currentTier = getLoyaltyTier(points);
       const nextTier = LOYALTY_TIERS.find(t => t.minPoints > points);
       const progress = nextTier 
         ? ((points - currentTier.minPoints) / (nextTier.minPoints - currentTier.minPoints)) * 100 
         : 100;
+
+      // Affichage spécial pour le statut Premium
+      const isPremium = currentTier.name === 'Premium';
 
       return (
         <Card className="p-6 mb-6">
@@ -830,8 +944,19 @@
             </div>
           )}
           
-          {!nextTier && (
-            <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-pink-500/30">
+          {isPremium && (
+            <div className="bg-gradient-to-r from-yellow-500/20 via-orange-500/20 to-red-500/20 rounded-xl p-4 border border-yellow-500/30 mt-4">
+              <p className="text-yellow-300 text-center font-bold mb-2">
+                🎉 Vous êtes Premium ! 🎉
+              </p>
+              <p className="text-yellow-200 text-center text-sm">
+                Profitez de l'offre exclusive : 2 Puffs au choix pour seulement 15€ !
+              </p>
+            </div>
+          )}
+          
+          {!nextTier && !isPremium && (
+            <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-xl p-4 border border-pink-500/30 mt-4">
               <p className="text-pink-300 text-center">
                 🎉 Vous avez atteint le niveau maximum !
               </p>
@@ -841,30 +966,36 @@
       );
     };
 
-// ==================== FIN PARTIE 3/6 ====================
+// ==================== FIN PARTIE 3/6 CORRIGÉE ====================
 // COPIEZ LA PARTIE 4/6 JUSTE APRÈS CETTE LIGNE
 // ==================== PARTIE 4/6 : VUES CLIENT ====================
 
+   // ==================== PARTIE 4/6 : VUES CLIENT (CORRIGÉE) ====================
+
     // ==================== VUE ACCUEIL (PRODUITS) ====================
-const HomeView = ({ 
-  products, 
-  search, 
-  setSearch, 
-  onAddToCart, 
-  onProductClick,
-  favorites,
-  onToggleFavorite,
-  onOpenSurvey,
-  userRole,
-  userFlavors
-}) => {
-  const filteredProducts = useMemo(() => 
-    products.filter(p => {
-      if (!p || !p.name) return false;
-      return p.name.toLowerCase().includes(search.toLowerCase());
-    }), 
-    [products, search]
-  );
+    const HomeView = ({ 
+      products, 
+      search, 
+      setSearch, 
+      onAddToCart, 
+      onProductClick,
+      favorites,
+      onToggleFavorite,
+      onOpenSurvey,
+      userRole,
+      userFlavors,
+      userPoints
+    }) => {
+      const filteredProducts = useMemo(() => 
+        products.filter(p => {
+          if (!p || !p.name) return false;
+          return p.name.toLowerCase().includes(search.toLowerCase());
+        }), 
+        [products, search]
+      );
+
+      // Vérifier si l'utilisateur est Premium
+      const isPremium = userPoints >= 1500;
 
       return (
         <>
@@ -876,6 +1007,30 @@ const HomeView = ({
               onChange={e => setSearch(e.target.value)} 
               icon="Search" 
             />
+            
+            {/* OFFRE PREMIUM */}
+            {userRole === 'client' && isPremium && (
+              <div className="bg-gradient-to-r from-yellow-500/30 via-orange-500/30 to-red-500/30 border-2 border-yellow-500/50 rounded-xl p-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="bg-gradient-to-r from-yellow-500 to-red-500 p-4 rounded-full">
+                      <Icon name="Star" size={32} className="text-white" />
+                    </div>
+                    <div>
+                      <p className="text-white font-black text-xl mb-1">🎁 Offre Premium Exclusive</p>
+                      <p className="text-yellow-200 text-sm">2 Puffs au choix pour seulement 15€ !</p>
+                      <p className="text-yellow-300 text-xs mt-1">Contactez le vendeur pour en profiter</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-red-400">
+                      15€
+                    </p>
+                    <p className="text-yellow-300 text-xs">Au lieu de 20€</p>
+                  </div>
+                </div>
+              </div>
+            )}
             
             {userRole === 'client' && (
               <button
@@ -1265,9 +1420,9 @@ const HomeView = ({
       );
     };
 
-// ==================== FIN PARTIE 4/6 ====================
+// ==================== FIN PARTIE 4/6 CORRIGÉE ====================
 // COPIEZ LA PARTIE 5/6 JUSTE APRÈS CETTE LIG
-// ==================== PARTIE 5/6 : VUES PARRAINAGE, PROMO, TUTORIEL & ADMIN ====================
+// ==================== PARTIE 5/6 : VUES PARRAINAGE, PROMO, TUTORIEL & ADMIN (CORRIGÉE) ====================
 
     // ==================== VUE PARRAINAGE ====================
     const ReferralView = ({ user, referrals }) => {
@@ -1414,7 +1569,7 @@ const HomeView = ({
       );
     };
 
-    // ==================== VUE TUTORIEL ====================
+    // ==================== VUE TUTORIEL (PAGE STATIQUE) ====================
     const TutorialView = () => {
       return (
         <Card className="p-6">
@@ -1444,8 +1599,8 @@ const HomeView = ({
                 <div>
                   <h3 className="text-white font-bold text-lg mb-2">⭐ Gagner des points</h3>
                   <p className="text-pink-300 text-sm">
-                    Gagnez 10 points par euro dépensé. Accumulez des points pour débloquer des paliers de fidélité 
-                    (Bronze, Argent, Or, Platine) et profiter d'avantages exclusifs.
+                    Gagnez 10 points par euro dépensé. Accumulez 1500 points pour débloquer le statut Premium 
+                    et profiter de l'offre exclusive : 2 Puffs au choix pour seulement 15€ !
                   </p>
                 </div>
               </div>
@@ -1608,51 +1763,119 @@ const HomeView = ({
       );
     };
 
-// ==================== FIN PARTIE 5/6 ====================
+    // ==================== VUE GESTION DES COMPTES (NOUVEAU) ====================
+    const AccountsManagementView = ({ users, onDeleteUser }) => {
+      const clientUsers = users.filter(u => u.role === 'client');
+      
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">👥 Gestion des Comptes</h2>
+          
+          <div className="bg-pink-500/10 border border-pink-500/30 rounded-xl p-4 mb-6">
+            <p className="text-pink-300 text-sm">
+              Total des comptes clients : <span className="text-white font-bold">{clientUsers.length}</span>
+            </p>
+          </div>
+          
+          {clientUsers.length === 0 ? (
+            <div className="text-center py-12">
+              <Icon name="Users" size={64} className="mx-auto text-pink-400/30 mb-4" />
+              <p className="text-pink-300 text-lg">Aucun compte client enregistré</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {clientUsers.map((u, idx) => (
+                <div key={idx} className="bg-white/5 p-5 rounded-xl border border-pink-500/20 flex justify-between items-center">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="bg-gradient-to-r from-pink-500 to-orange-500 w-10 h-10 rounded-full flex items-center justify-center">
+                        <Icon name="Users" size={20} className="text-white" />
+                      </div>
+                      <div>
+                        <p className="text-white font-bold text-lg">{u.name}</p>
+                        <p className="text-pink-300 text-sm">📞 {u.phone || 'Non renseigné'}</p>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 mt-3">
+                      <div className="bg-pink-500/10 p-2 rounded-lg">
+                        <p className="text-pink-300 text-xs">Points</p>
+                        <p className="text-white font-bold">⭐ {u.points || 0}</p>
+                      </div>
+                      <div className="bg-pink-500/10 p-2 rounded-lg">
+                        <p className="text-pink-300 text-xs">Code parrainage</p>
+                        <p className="text-white font-bold text-xs">{u.referralCode}</p>
+                      </div>
+                    </div>
+                    {u.referredBy && (
+                      <p className="text-pink-400 text-xs mt-2">
+                        🎁 Parrainé par: {u.referredBy}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Supprimer le compte de ${u.name} ?\n\nCette action est irréversible.`)) {
+                        onDeleteUser(u.name);
+                      }
+                    }}
+                    className="ml-4 bg-red-500/20 hover:bg-red-500/30 text-red-400 p-3 rounded-xl transition"
+                  >
+                    <Icon name="Trash2" size={20} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+      );
+    };
+
+// ==================== FIN PARTIE 5/6 CORRIGÉE ====================
 // COPIEZ LA PARTIE 6/6 (DERNIÈRE) JUSTE APRÈS CETTE LIGNE
-// ==================== PARTIE 6/6 : APP PRINCIPAL & ADMIN + FIN ====================
+// ==================== PARTIE 6/6 : APP PRINCIPAL & ADMIN + FIN (CORRIGÉE) ====================
 
     // ==================== VUE ADMIN PRODUITS ====================
-const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProduct }) => {
-  return (
-    <Card className="p-6">
-      <h2 className="text-3xl font-black text-white mb-6">📦 Gestion des Produits</h2>
-      
-      <Button onClick={onAddProduct} className="mb-6">
-        <Icon name="Upload" size={20} />
-        AJOUTER UN PRODUIT
-      </Button>
-      
-      <div className="space-y-3">
-        {products.map(p => (
-          <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-pink-500/20">
-            <div className="flex items-center gap-3">
-              <img src={p.img || ''} alt={p.name || 'Produit'} className="w-16 h-16 rounded-lg object-cover" />
-              <div>
-                <p className="text-white font-bold">{p.name || 'Sans nom'}</p>
-                <p className="text-pink-300 text-sm">{p.price ? p.price.toFixed(2) : '0.00'}€ - Stock: {p.stock || 0}</p>
+    const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProduct }) => {
+      return (
+        <Card className="p-6">
+          <h2 className="text-3xl font-black text-white mb-6">📦 Gestion des Produits</h2>
+          
+          <Button onClick={onAddProduct} className="mb-6">
+            <Icon name="Upload" size={20} />
+            AJOUTER UN PRODUIT
+          </Button>
+          
+          <div className="space-y-3">
+            {products.map(p => (
+              <div key={p.id} className="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-pink-500/20">
+                <div className="flex items-center gap-3">
+                  <img src={p.img || ''} alt={p.name || 'Produit'} className="w-16 h-16 rounded-lg object-cover" />
+                  <div>
+                    <p className="text-white font-bold">{p.name || 'Sans nom'}</p>
+                    <p className="text-pink-300 text-sm">{p.price ? p.price.toFixed(2) : '0.00'}€ - Stock: {p.stock || 0}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => onEditProduct(p)} 
+                    className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition"
+                  >
+                    <Icon name="Edit" size={20} />
+                  </button>
+                  <button 
+                    onClick={() => onDeleteProduct(p.id)} 
+                    className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition"
+                  >
+                    <Icon name="Trash2" size={20} />
+                  </button>
+                </div>
               </div>
-            </div>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => onEditProduct(p)} 
-                className="text-blue-400 hover:text-blue-300 p-2 hover:bg-blue-400/10 rounded-lg transition"
-              >
-                <Icon name="Edit" size={20} />
-              </button>
-              <button 
-                onClick={() => onDeleteProduct(p.id)} 
-                className="text-red-400 hover:text-red-300 p-2 hover:bg-red-400/10 rounded-lg transition"
-              >
-                <Icon name="Trash2" size={20} />
-              </button>
-            </div>
+            ))}
           </div>
-        ))}
-      </div>
-    </Card>
-  );
-};
+        </Card>
+      );
+    };
 
     // ==================== VUE ADMIN COMMANDES ====================
     const AdminOrdersView = ({ orders, onConfirmOrder, onDeleteOrder }) => {
@@ -1753,6 +1976,7 @@ const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProd
       const [selectedProduct, setSelectedProduct] = useState(null);
       const [showSurvey, setShowSurvey] = useState(false);
       const [showScanner, setShowScanner] = useState(false);
+      const [showTutorial, setShowTutorial] = useState(false);
       const [favorites, setFavorites] = useState([]);
       const [userFlavors, setUserFlavors] = useState([]);
       const [allFlavors, setAllFlavors] = useState(INITIAL_FLAVORS);
@@ -1760,37 +1984,53 @@ const AdminProductsView = ({ products, onAddProduct, onEditProduct, onDeleteProd
       const [loading, setLoading] = useState(true);
 
       // Chargement initial des données depuis Firebase
-useEffect(() => {
-  const loadData = async () => {
-    setLoading(true);
-    try {
-      console.log('🔄 Chargement des données depuis Firebase...');
-      
-      const loadedUsers = await loadFromFirestore('pshop_users', INITIAL_USERS);
-      const loadedProducts = await loadFromFirestore('pshop_products', INITIAL_PRODUCTS);
-      const loadedOrders = await loadFromFirestore('pshop_orders', []);
-      const loadedFlavors = await loadFromFirestore('pshop_all_flavors', INITIAL_FLAVORS);
-      const loadedSurvey = await loadFromFirestore('pshop_survey_results', {});
+      useEffect(() => {
+        const loadData = async () => {
+          setLoading(true);
+          try {
+            console.log('🔄 Chargement des données depuis Firebase...');
+            
+            const loadedUsers = await loadFromFirestore('pshop_users', INITIAL_USERS);
+            const loadedProducts = await loadFromFirestore('pshop_products', INITIAL_PRODUCTS);
+            const loadedOrders = await loadFromFirestore('pshop_orders', []);
+            const loadedFlavors = await loadFromFirestore('pshop_all_flavors', INITIAL_FLAVORS);
+            const loadedSurvey = await loadFromFirestore('pshop_survey_results', {});
 
-      // NETTOYAGE DES PRODUITS - CORRECTION DES DONNÉES CORROMPUES
-      const cleanedProducts = loadedProducts.filter(p => {
-        if (!p || typeof p !== 'object') return false;
-        if (!p.id || !p.name || p.price === undefined || p.stock === undefined) {
-          console.warn('⚠️ Produit invalide détecté et supprimé:', p);
-          return false;
-        }
-        return true;
-      }).map(p => ({
-        ...p,
-        price: Number(p.price) || 0,
-        stock: Number(p.stock) || 0
-      }));
+            // NETTOYAGE DES PRODUITS
+            const cleanedProducts = loadedProducts.filter(p => {
+              if (!p || typeof p !== 'object') return false;
+              if (!p.id || !p.name || p.price === undefined || p.stock === undefined) {
+                console.warn('⚠️ Produit invalide détecté et supprimé:', p);
+                return false;
+              }
+              return true;
+            }).map(p => ({
+              ...p,
+              price: Number(p.price) || 0,
+              stock: Number(p.stock) || 0
+            }));
 
-      setUsers(loadedUsers);
-      setProducts(cleanedProducts);
-      setOrders(loadedOrders);
-      setAllFlavors(loadedFlavors);
-      setSurveyResults(loadedSurvey);
+            setUsers(loadedUsers);
+            setProducts(cleanedProducts);
+            setOrders(loadedOrders);
+            setAllFlavors(loadedFlavors);
+            setSurveyResults(loadedSurvey);
+            
+            // VÉRIFIER SI ON DOIT RESTER CONNECTÉ (LocalStorage)
+            const savedUsername = localStorage.getItem('pshop_remember_user');
+            if (savedUsername) {
+              const savedUser = loadedUsers.find(u => u.name === savedUsername);
+              if (savedUser) {
+                setUser(savedUser);
+                
+                const userFavs = await loadFromFirestore('pshop_favorites_' + savedUser.name, []);
+                const userFlav = await loadFromFirestore('pshop_user_flavors_' + savedUser.name, []);
+                setFavorites(userFavs);
+                setUserFlavors(userFlav);
+                
+                console.log('✅ Connexion automatique:', savedUser.name);
+              }
+            }
             
             console.log('✅ Toutes les données chargées');
           } catch (error) {
@@ -1802,18 +2042,12 @@ useEffect(() => {
         loadData();
       }, []);
 
-      // Sauvegarde automatique dans Firebase à chaque modification
+      // Sauvegarde automatique dans Firebase
       useEffect(() => { 
         if (!loading && users.length > 0) {
           saveToFirestore('pshop_users', users);
         }
       }, [users, loading]);
-      
-      useEffect(() => { 
-        if (!loading) {
-          saveToFirestore('pshop_current_user', user);
-        }
-      }, [user, loading]);
       
       useEffect(() => { 
         if (!loading && products.length > 0) {
@@ -1863,14 +2097,20 @@ useEffect(() => {
         if (u) {
           setUser(u);
           
-          await saveToFirestore('pshop_remember_me', rememberMe);
+          // UTILISER LOCALSTORAGE POUR RESTER CONNECTÉ (PAR APPAREIL)
+          if (rememberMe) {
+            localStorage.setItem('pshop_remember_user', u.name);
+            console.log('✅ Rester connecté activé pour:', u.name);
+          } else {
+            localStorage.removeItem('pshop_remember_user');
+          }
           
           const userFavs = await loadFromFirestore('pshop_favorites_' + u.name, []);
           const userFlav = await loadFromFirestore('pshop_user_flavors_' + u.name, []);
           setFavorites(userFavs);
           setUserFlavors(userFlav);
           
-          console.log('✅ Connexion réussie:', u.name, '- Rester connecté:', rememberMe);
+          console.log('✅ Connexion réussie:', u.name);
         } else {
           alert('Identifiant ou mot de passe incorrect');
         }
@@ -1906,17 +2146,25 @@ useEffect(() => {
         setUsers(updatedUsers);
         
         await saveToFirestore('pshop_users', updatedUsers);
-        await saveToFirestore('pshop_remember_me', rememberMe);
+        
+        // UTILISER LOCALSTORAGE POUR RESTER CONNECTÉ
+        if (rememberMe) {
+          localStorage.setItem('pshop_remember_user', newUser.name);
+        }
         
         setUser(newUser);
+        
+        // AFFICHER LE TUTORIEL AU PREMIER LANCEMENT
+        setShowTutorial(true);
+        
         alert(`Bienvenue ${form.name} ! 🎉${newUser.points > 0 ? ` Vous avez reçu ${newUser.points} points de bienvenue !` : ''}`);
         
-        console.log('✅ Nouveau compte créé et sauvegardé:', newUser.name);
+        console.log('✅ Nouveau compte créé:', newUser.name);
       }, [users]);
 
       const handleLogout = useCallback(async () => {
-        await saveToFirestore('pshop_remember_me', false);
-        await saveToFirestore('pshop_current_user', null);
+        // SUPPRIMER UNIQUEMENT DE LOCALSTORAGE (PAR APPAREIL)
+        localStorage.removeItem('pshop_remember_user');
         
         setUser(null);
         setCart([]);
@@ -2065,36 +2313,36 @@ useEffect(() => {
       }, [allFlavors]);
 
       const addProduct = useCallback(() => {
-  const name = prompt('Nom du produit');
-  if (!name || !name.trim()) return alert('Nom invalide');
+        const name = prompt('Nom du produit');
+        if (!name || !name.trim()) return alert('Nom invalide');
 
-  const priceStr = prompt('Prix (€)', '10.00');
-  const price = parseFloat(priceStr);
-  if (isNaN(price) || price < 0) return alert('Prix invalide');
+        const priceStr = prompt('Prix (€)', '10.00');
+        const price = parseFloat(priceStr);
+        if (isNaN(price) || price < 0) return alert('Prix invalide');
 
-  const stockStr = prompt('Quantité en stock', '10');
-  const stock = parseInt(stockStr);
-  if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
+        const stockStr = prompt('Quantité en stock', '10');
+        const stock = parseInt(stockStr);
+        if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
 
-  const desc = prompt('Description du produit');
-  if (!desc || !desc.trim()) return alert('Description invalide');
+        const desc = prompt('Description du produit');
+        if (!desc || !desc.trim()) return alert('Description invalide');
 
-  const imgUrl = prompt('URL de l\'image\n\nVous pouvez uploader sur:\n- https://postimg.cc/\n- https://imgur.com/\n\nPuis coller le lien direct', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400');
-  if (!imgUrl || !imgUrl.trim()) return alert('URL image invalide');
+        const imgUrl = prompt('URL de l\'image\n\nVous pouvez uploader sur:\n- https://postimg.cc/\n- https://imgur.com/\n\nPuis coller le lien direct', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400');
+        if (!imgUrl || !imgUrl.trim()) return alert('URL image invalide');
 
-  const newProduct = {
-    id: Date.now(),
-    name: name.trim(),
-    price: Number(price),
-    stock: Number(stock),
-    img: imgUrl.trim(),
-    desc: desc.trim()
-  };
-  
-  console.log('✅ Nouveau produit créé:', newProduct);
-  setProducts(prev => [...prev, newProduct]);
-  alert('✅ Produit ajouté avec succès !');
-}, []);
+        const newProduct = {
+          id: Date.now(),
+          name: name.trim(),
+          price: Number(price),
+          stock: Number(stock),
+          img: imgUrl.trim(),
+          desc: desc.trim()
+        };
+        
+        console.log('✅ Nouveau produit créé:', newProduct);
+        setProducts(prev => [...prev, newProduct]);
+        alert('✅ Produit ajouté avec succès !');
+      }, []);
 
       const editProduct = useCallback((p) => {
         const name = prompt('Nouveau nom', p.name);
@@ -2127,6 +2375,11 @@ useEffect(() => {
           setOrders(prev => prev.filter(o => o.id !== id));
           alert('Commande supprimée !');
         }
+      }, []);
+
+      const deleteUser = useCallback((username) => {
+        setUsers(prev => prev.filter(u => u.name !== username));
+        alert(`Compte de ${username} supprimé !`);
       }, []);
 
       // Rendu
@@ -2176,6 +2429,7 @@ useEffect(() => {
                 onOpenSurvey={() => setShowSurvey(true)}
                 userRole={user.role}
                 userFlavors={userFlavors}
+                userPoints={user.points || 0}
               />
             )}
 
@@ -2236,6 +2490,13 @@ useEffect(() => {
               </div>
             )}
 
+            {view === 'accounts' && user.role === 'producer' && (
+              <AccountsManagementView
+                users={users}
+                onDeleteUser={deleteUser}
+              />
+            )}
+
             {view === 'scanner' && user.role === 'producer' && (
               <Card className="p-12 text-center">
                 <Icon name="Camera" size={64} className="mx-auto text-pink-400 mb-4" />
@@ -2273,6 +2534,12 @@ useEffect(() => {
               onValidate={handleScannerValidate}
             />
           )}
+
+          {showTutorial && (
+            <TutorialModal
+              onClose={() => setShowTutorial(false)}
+            />
+          )}
         </div>
       );
     }
@@ -2282,3 +2549,4 @@ useEffect(() => {
   </script>
 </body>
 </html>
+
