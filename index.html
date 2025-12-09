@@ -17,6 +17,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>P-Shop</title>
+  <!-- PWA -->
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#ec4899">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="apple-touch-icon" href="https://i.postimg.cc/ZRscyVKS/b4beb632-78c8-4f8d-8491-02da1b2545ee.png">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
@@ -2549,6 +2554,12 @@
     // ==================== RENDU FINAL ====================
     ReactDOM.render(<App />, document.getElementById('root'));
   </script>
+  <!-- Service Worker - METTRE ICI -->
+    <script>
+    if('serviceWorker' in navigator){
+      navigator.serviceWorker.register('./sw.js');
+    }
+    </script>
 </body>
 </html>
 
