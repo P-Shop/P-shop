@@ -457,6 +457,7 @@
     // ==================== VUE LOGIN/INSCRIPTION ====================
     const LoginView = ({ onLogin, onRegister }) => {
       const [mode, setMode] = useState('login');
+      const [rememberMe, setRememberMe] = useState(false);
       const [form, setForm] = useState({ 
         name: '', 
         password: '', 
@@ -475,9 +476,9 @@
           if (!form.confirmPassword) return alert('Veuillez confirmer le mot de passe');
           if (form.password !== form.confirmPassword) return alert('Les mots de passe ne correspondent pas');
           if (form.password.length < 6) return alert('Le mot de passe doit contenir au moins 6 caractères');
-          onRegister(form);
+          onRegister(form, rememberMe);
         } else {
-          onLogin(form);
+          onLogin(form, rememberMe);
         }
       };
       
@@ -564,6 +565,20 @@
               <Button onClick={handleSubmit} className="w-full">
                 {mode === 'login' ? 'SE CONNECTER' : 'CRÉER COMPTE'}
               </Button>
+              
+              {/* OPTION RESTER CONNECTÉ */}
+              <div className="flex items-center gap-2 mt-4">
+                <input
+                  type="checkbox"
+                  id="rememberMe"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="w-4 h-4 accent-pink-500 cursor-pointer"
+                />
+                <label htmlFor="rememberMe" className="text-pink-300 text-sm cursor-pointer">
+                  Rester connecté
+                </label>
+              </div>
             </div>
             
             <p className="text-pink-300/70 text-xs text-center mt-6">
@@ -1625,6 +1640,7 @@
             const loadedFlavors = await loadFromFirestore('pshop_all_flavors', INITIAL_FLAVORS);
             const loadedSurvey = await loadFromFirestore('pshop_survey_results', {});
             const currentUser = await loadFromFirestore('pshop_current_user', null);
+            const rememberMeStatus = await loadFromFirestore('pshop_remember_me', false);
 
             setUsers(loadedUsers);
             setProducts(loadedProducts);
@@ -1632,12 +1648,14 @@
             setAllFlavors(loadedFlavors);
             setSurveyResults(loadedSurvey);
             
-            if (currentUser) {
+            // Auto-connexion si "rester connecté" était activé
+            if (currentUser && rememberMeStatus) {
               setUser(currentUser);
               const userFavs = await loadFromFirestore('pshop_favorites_' + currentUser.name, []);
               const userFlav = await loadFromFirestore('pshop_user_flavors_' + currentUser.name, []);
               setFavorites(userFavs);
               setUserFlavors(userFlav);
+              console.log('✅ Auto-connexion réussie pour:', currentUser.name);
             }
             
             console.log('✅ Toutes les données chargées');
@@ -1706,20 +1724,26 @@
       const myReferrals = useMemo(() => users.filter(u => u.referredBy === user?.referralCode), [users, user]);
 
       // Handlers
-      const handleLogin = useCallback(async (form) => {
+      const handleLogin = useCallback(async (form, rememberMe) => {
         const u = users.find(u => u.name === form.name && u.password === form.password);
         if (u) {
           setUser(u);
+          
+          // Sauvegarder l'option "rester connecté"
+          await saveToFirestore('pshop_remember_me', rememberMe);
+          
           const userFavs = await loadFromFirestore('pshop_favorites_' + u.name, []);
           const userFlav = await loadFromFirestore('pshop_user_flavors_' + u.name, []);
           setFavorites(userFavs);
           setUserFlavors(userFlav);
+          
+          console.log('✅ Connexion réussie:', u.name, '- Rester connecté:', rememberMe);
         } else {
           alert('Identifiant ou mot de passe incorrect');
         }
       }, [users]);
 
-      const handleRegister = useCallback((form) => {
+      const handleRegister = useCallback(async (form, rememberMe) => {
         if (users.find(u => u.name === form.name)) return alert('Ce nom d\'utilisateur existe déjà');
         
         const newUser = {
@@ -1733,28 +1757,43 @@
         };
 
         // Bonus parrainage
+        let updatedUsers = [...users];
         if (form.referralCode) {
-          const referrer = users.find(u => u.referralCode === form.referralCode);
-          if (referrer) {
+          const referrerIndex = users.findIndex(u => u.referralCode === form.referralCode);
+          if (referrerIndex !== -1) {
             newUser.points = 50; // Bonus filleul
-            setUsers(prev => prev.map(u => 
-              u.referralCode === form.referralCode 
-                ? {...u, points: (u.points || 0) + 100} 
-                : u
-            ));
+            updatedUsers[referrerIndex] = {
+              ...updatedUsers[referrerIndex],
+              points: (updatedUsers[referrerIndex].points || 0) + 100
+            };
           }
         }
 
-        setUsers(prev => [...prev, newUser]);
+        // Ajouter le nouvel utilisateur
+        updatedUsers.push(newUser);
+        setUsers(updatedUsers);
+        
+        // IMPORTANT: Sauvegarder immédiatement dans Firebase
+        await saveToFirestore('pshop_users', updatedUsers);
+        await saveToFirestore('pshop_remember_me', rememberMe);
+        
         setUser(newUser);
         alert(`Bienvenue ${form.name} ! 🎉${newUser.points > 0 ? ` Vous avez reçu ${newUser.points} points de bienvenue !` : ''}`);
+        
+        console.log('✅ Nouveau compte créé et sauvegardé:', newUser.name);
       }, [users]);
 
-      const handleLogout = useCallback(() => {
+      const handleLogout = useCallback(async () => {
+        // Effacer l'option "rester connecté" lors de la déconnexion manuelle
+        await saveToFirestore('pshop_remember_me', false);
+        await saveToFirestore('pshop_current_user', null);
+        
         setUser(null);
         setCart([]);
         setView('home');
         setFavorites([]);
+        
+        console.log('✅ Déconnexion réussie');
       }, []);
 
       const addToCart = useCallback((p) => {
