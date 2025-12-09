@@ -2065,41 +2065,36 @@ useEffect(() => {
       }, [allFlavors]);
 
       const addProduct = useCallback(() => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.onchange = (e) => {
-          const f = e.target.files?.[0];
-          if (!f) return;
+  const name = prompt('Nom du produit');
+  if (!name || !name.trim()) return alert('Nom invalide');
 
-          const name = prompt('Nom du produit');
-          if (!name) return;
+  const priceStr = prompt('Prix (€)', '10.00');
+  const price = parseFloat(priceStr);
+  if (isNaN(price) || price < 0) return alert('Prix invalide');
 
-          const price = parseFloat(prompt('Prix (€)', '10.00'));
-          if (!price || isNaN(price)) return alert('Prix invalide');
+  const stockStr = prompt('Quantité en stock', '10');
+  const stock = parseInt(stockStr);
+  if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
 
-          const stock = parseInt(prompt('Quantité en stock'));
-          if (isNaN(stock) || stock < 0) return alert('Quantité invalide');
+  const desc = prompt('Description du produit');
+  if (!desc || !desc.trim()) return alert('Description invalide');
 
-          const desc = prompt('Description');
-          if (!desc) return;
+  const imgUrl = prompt('URL de l\'image\n\nVous pouvez uploader sur:\n- https://postimg.cc/\n- https://imgur.com/\n\nPuis coller le lien direct', 'https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=400');
+  if (!imgUrl || !imgUrl.trim()) return alert('URL image invalide');
 
-          const r = new FileReader();
-          r.onload = (ev) => {
-            setProducts(prev => [...prev, {
-              id: Date.now(),
-              name,
-              price,
-              stock,
-              img: ev.target.result,
-              desc
-            }]);
-            alert('Produit ajouté !');
-          };
-          r.readAsDataURL(f);
-        };
-        input.click();
-      }, []);
+  const newProduct = {
+    id: Date.now(),
+    name: name.trim(),
+    price: Number(price),
+    stock: Number(stock),
+    img: imgUrl.trim(),
+    desc: desc.trim()
+  };
+  
+  console.log('✅ Nouveau produit créé:', newProduct);
+  setProducts(prev => [...prev, newProduct]);
+  alert('✅ Produit ajouté avec succès !');
+}, []);
 
       const editProduct = useCallback((p) => {
         const name = prompt('Nouveau nom', p.name);
