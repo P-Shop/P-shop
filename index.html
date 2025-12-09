@@ -846,22 +846,25 @@
 // ==================== PARTIE 4/6 : VUES CLIENT ====================
 
     // ==================== VUE ACCUEIL (PRODUITS) ====================
-    const HomeView = ({ 
-      products, 
-      search, 
-      setSearch, 
-      onAddToCart, 
-      onProductClick,
-      favorites,
-      onToggleFavorite,
-      onOpenSurvey,
-      userRole,
-      userFlavors
-    }) => {
-      const filteredProducts = useMemo(() => 
-        products.filter(p => p.name.toLowerCase().includes(search.toLowerCase())), 
-        [products, search]
-      );
+const HomeView = ({ 
+  products, 
+  search, 
+  setSearch, 
+  onAddToCart, 
+  onProductClick,
+  favorites,
+  onToggleFavorite,
+  onOpenSurvey,
+  userRole,
+  userFlavors
+}) => {
+  const filteredProducts = useMemo(() => 
+    products.filter(p => {
+      if (!p || !p.name) return false;
+      return p.name.toLowerCase().includes(search.toLowerCase());
+    }), 
+    [products, search]
+  );
 
       return (
         <>
