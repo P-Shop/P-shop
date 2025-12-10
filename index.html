@@ -691,7 +691,7 @@
               <h1 className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-orange-400 mb-2">
                 P-SHOP
               </h1>
-              <p className="text-pink-300 text-sm">Votre boutique de coques premium</p>
+              <p className="text-pink-300 text-sm">Votre boutique de Puff </p>
             </div>
             
             <div className="flex gap-2 mb-6">
@@ -745,12 +745,15 @@
                     onChange={e => setForm({...form, confirmPassword: e.target.value})} 
                   />
                   <Input 
-                    type="text" 
-                    placeholder="Code de parrainage (optionnel)" 
-                    value={form.referralCode} 
-                    onChange={e => setForm({...form, referralCode: e.target.value})} 
-                    icon="Gift"
-                  />
+  type="text" 
+  placeholder="Code parrainage ou promo (optionnel)" 
+  value={form.referralCode} 
+  onChange={e => setForm({...form, referralCode: e.target.value.toUpperCase()})} 
+  icon="Gift"
+/>
+<p className="text-pink-300 text-xs mt-1 text-center">
+  Utilisez PUFF200 pour 200 points de bienvenue 🎁
+</p>
                 </>
               )}
               
@@ -1956,14 +1959,24 @@
     // ==================== COMPOSANT APP PRINCIPAL ====================
     function App() {
       // Données initiales
-      const INITIAL_USERS = [{ 
-        name: 'Bradley', 
-        password: 'Brad@mar270508', 
-        role: 'producer', 
-        phone: '', 
-        referralCode: 'PUFFBRA123456',
-        points: 0
-      }];
+      const INITIAL_USERS = [
+  { 
+    name: 'Bradley', 
+    password: 'Brad@mar270508', 
+    role: 'producer', 
+    phone: '', 
+    referralCode: 'PUFFBRA123456',
+    points: 1500
+  },
+  { 
+    name: 'Kmb',  // ⬅️ Changez ce nom
+    password: 'Kmb123456',  // ⬅️ Changez ce mot de passe
+    role: 'producer', 
+    phone: '', 
+    referralCode: 'PUFFVEN789012',
+    points: 1500
+  }
+];
       
       const INITIAL_PRODUCTS = [
         { id: 1, name: 'Coque Galaxy', price: 10.00, stock: 10, img: 'https://images.unsplash.com/photo-1601784551446-20c9e07cdbdb?w=400', desc: 'Design Puff Jr coloré' },
@@ -2137,17 +2150,24 @@
         };
 
         // Bonus parrainage
-        let updatedUsers = [...users];
-        if (form.referralCode) {
-          const referrerIndex = users.findIndex(u => u.referralCode === form.referralCode);
-          if (referrerIndex !== -1) {
-            newUser.points = 50;
-            updatedUsers[referrerIndex] = {
-              ...updatedUsers[referrerIndex],
-              points: (updatedUsers[referrerIndex].points || 0) + 100
-            };
-          }
-        }
+let updatedUsers = [...users];
+if (form.referralCode) {
+  // CODE PROMO SPÉCIAL 200 POINTS
+  if (form.referralCode === 'PUFF200') {
+    newUser.points = 200;
+    alert('🎉 Code promo spécial activé ! Vous recevez 200 points de bienvenue !');
+  } else {
+    // Code parrainage normal
+    const referrerIndex = users.findIndex(u => u.referralCode === form.referralCode);
+    if (referrerIndex !== -1) {
+      newUser.points = 50;
+      updatedUsers[referrerIndex] = {
+        ...updatedUsers[referrerIndex],
+        points: (updatedUsers[referrerIndex].points || 0) + 100
+      };
+    }
+  }
+}
 
         updatedUsers.push(newUser);
         setUsers(updatedUsers);
