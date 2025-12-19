@@ -2424,75 +2424,75 @@ function App() {
         const loadedUsers = await loadFromFirestore('pshop_users', null);
         const loadedProducts = await loadFromFirestore('pshop_products', null);
         const loadedOrders = await loadFromFirestore('pshop_orders', null);
-        const loadedArchived = await loadFromFirestore('pshop_archived_orders', []); // ✨ NOUVEAU
+        const loadedArchived = await loadFromFirestore('pshop_archived_orders', null); // ✅ CORRIGÉ: null au lieu de []
         const loadedFlavors = await loadFromFirestore('pshop_all_flavors', null);
         const loadedSurvey = await loadFromFirestore('pshop_survey_results', null);
 
         // 🔧 CORRECTION : Chargement robuste sans écraser les données
-if (!loadedUsers || loadedUsers.length === 0) {
-  console.log('⚠️ Chargement initial ou bug détecté...');
-  
-  // Vérifier directement dans Firebase
-  const snapshot = await db.collection('pshop_users').get();
-  
-  if (snapshot.empty) {
-    // Vraiment vide = première installation
-    console.log('📝 Initialisation des comptes administrateurs');
-    await saveToFirestore('pshop_users', INITIAL_USERS);
-    setUsers(INITIAL_USERS);
-  } else {
-    // Données existent = charger manuellement
-    console.log('⚠️ Bug de loadFromFirestore, chargement manuel...');
-    const manualUsers = snapshot.docs.map(doc => doc.data());
-    console.log(`✅ ${manualUsers.length} utilisateurs récupérés manuellement`);
-    
-    // Vérifier que les admins sont présents
-    let finalUsers = [...manualUsers];
-    let needsUpdate = false;
-    
-    INITIAL_USERS.forEach(admin => {
-      if (admin.role === 'producer') {
-        const existingAdmin = finalUsers.find(u => u.name === admin.name && u.role === 'producer');
-        if (!existingAdmin) {
-          console.log(`🔧 Restauration admin manquant: ${admin.name}`);
-          finalUsers.push(admin);
-          needsUpdate = true;
+        if (!loadedUsers || loadedUsers.length === 0) {
+          console.log('⚠️ Chargement initial ou bug détecté...');
+          
+          // Vérifier directement dans Firebase
+          const snapshot = await db.collection('pshop_users').get();
+          
+          if (snapshot.empty) {
+            // Vraiment vide = première installation
+            console.log('📝 Initialisation des comptes administrateurs');
+            await saveToFirestore('pshop_users', INITIAL_USERS);
+            setUsers(INITIAL_USERS);
+          } else {
+            // Données existent = charger manuellement
+            console.log('⚠️ Bug de loadFromFirestore, chargement manuel...');
+            const manualUsers = snapshot.docs.map(doc => doc.data());
+            console.log(`✅ ${manualUsers.length} utilisateurs récupérés manuellement`);
+            
+            // Vérifier que les admins sont présents
+            let finalUsers = [...manualUsers];
+            let needsUpdate = false;
+            
+            INITIAL_USERS.forEach(admin => {
+              if (admin.role === 'producer') {
+                const existingAdmin = finalUsers.find(u => u.name === admin.name && u.role === 'producer');
+                if (!existingAdmin) {
+                  console.log(`🔧 Restauration admin manquant: ${admin.name}`);
+                  finalUsers.push(admin);
+                  needsUpdate = true;
+                }
+              }
+            });
+            
+            if (needsUpdate) {
+              await saveToFirestore('pshop_users', finalUsers);
+              console.log('✅ Admins restaurés sans écraser les clients');
+            }
+            
+            setUsers(finalUsers);
+          }
+        } else {
+          console.log(`✅ ${loadedUsers.length} utilisateurs chargés depuis Firebase`);
+          
+          // 🛡️ PROTECTION: Vérifier que les admins existent toujours
+          let finalUsers = [...loadedUsers];
+          let needsUpdate = false;
+          
+          INITIAL_USERS.forEach(admin => {
+            if (admin.role === 'producer') {
+              const existingAdmin = finalUsers.find(u => u.name === admin.name && u.role === 'producer');
+              if (!existingAdmin) {
+                console.log(`🔧 Restauration admin manquant: ${admin.name}`);
+                finalUsers.push(admin);
+                needsUpdate = true;
+              }
+            }
+          });
+          
+          if (needsUpdate) {
+            await saveToFirestore('pshop_users', finalUsers);
+            console.log('✅ Admins restaurés sans écraser les clients');
+          }
+          
+          setUsers(finalUsers);
         }
-      }
-    });
-    
-    if (needsUpdate) {
-      await saveToFirestore('pshop_users', finalUsers);
-      console.log('✅ Admins restaurés sans écraser les clients');
-    }
-    
-    setUsers(finalUsers);
-  }
-} else {
-  console.log(`✅ ${loadedUsers.length} utilisateurs chargés depuis Firebase`);
-  
-  // 🛡️ PROTECTION: Vérifier que les admins existent toujours
-  let finalUsers = [...loadedUsers];
-  let needsUpdate = false;
-  
-  INITIAL_USERS.forEach(admin => {
-    if (admin.role === 'producer') {
-      const existingAdmin = finalUsers.find(u => u.name === admin.name && u.role === 'producer');
-      if (!existingAdmin) {
-        console.log(`🔧 Restauration admin manquant: ${admin.name}`);
-        finalUsers.push(admin);
-        needsUpdate = true;
-      }
-    }
-  });
-  
-  if (needsUpdate) {
-    await saveToFirestore('pshop_users', finalUsers);
-    console.log('✅ Admins restaurés sans écraser les clients');
-  }
-  
-  setUsers(finalUsers);
-}
 
         if (!loadedProducts || loadedProducts.length === 0) {
           console.log('⚠️ Aucun produit trouvé, initialisation...');
@@ -2514,8 +2514,22 @@ if (!loadedUsers || loadedUsers.length === 0) {
           setProducts(cleanedProducts);
         }
 
-        setOrders(loadedOrders || []);
-        setArchivedOrders(loadedArchived || []); // ✨ NOUVEAU
+        // ✅ CORRECTION: Ne jamais écraser avec un tableau vide si les données existent
+        if (loadedOrders !== null) {
+          setOrders(loadedOrders);
+        } else {
+          console.log('⚠️ Aucune commande active trouvée, initialisation à []');
+          setOrders([]);
+        }
+        
+        if (loadedArchived !== null) {
+          console.log(`✅ ${loadedArchived.length} commandes archivées chargées`);
+          setArchivedOrders(loadedArchived);
+        } else {
+          console.log('⚠️ Aucune commande archivée trouvée, initialisation à []');
+          setArchivedOrders([]);
+        }
+        
         setAllFlavors(loadedFlavors || INITIAL_FLAVORS);
         setSurveyResults(loadedSurvey || {});
         
@@ -3115,4 +3129,5 @@ ReactDOM.render(<App />, document.getElementById('root'));
     </script>
 </body>
 </html>
+
 
